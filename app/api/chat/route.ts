@@ -17,6 +17,15 @@ export async function POST(req: Request) {
 
 	const targetModel = model && model.trim().length > 0 ? model : "arcee-ai/trinity-mini:free";
 
+	if (!message || !message.parts || message.parts.length === 0) {
+		return new Response("Invalid message", { status: 400 });
+	}
+
+	const messageText = message.parts
+		.filter((part): part is Extract<typeof part, { type: "text" }> => part.type === "text")
+		.map((part) => part.text)
+		.join("");
+
 	const result = streamText({
 		model: openrouter(targetModel),
 		messages: convertToModelMessages([message]),
@@ -26,12 +35,12 @@ export async function POST(req: Request) {
 			if (conversationId) {
 				await turso.execute({
 					sql: "INSERT INTO messages (id, role, content, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-					args: [generateId(), "assistant", text, Date.now(), conversationId],
+					args: [generateId(), "user", messageText, Date.now(), conversationId],
 				});
 
 				await turso.execute({
 					sql: "INSERT INTO messages (id, role, content, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-					args: [generateId(), "user", message.parts.map((text) => text).join(""), Date.now(), conversationId],
+					args: [generateId(), "assistant", text, Date.now(), conversationId],
 				});
 
 				await turso.execute({
@@ -44,6 +53,9 @@ export async function POST(req: Request) {
 			console.error("Stream error:", error);
 		},
 	});
+
+	// Ensure the stream is consumed so onFinish gets called
+	result.consumeStream();
 
 	return result.toUIMessageStreamResponse();
 }

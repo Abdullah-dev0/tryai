@@ -31,16 +31,23 @@ export async function POST(req: Request) {
 		messages: convertToModelMessages([message]),
 		system:
 			"You are a helpful AI assistant. Answer the user's questions to the best of your ability always being concise and reply on markdown format. If you do not know the answer, just say that you do not know. Do not try to make up an answer.",
-		async onFinish({ text }) {
+		async onFinish({ text, reasoning }) {
 			if (conversationId) {
 				await turso.execute({
 					sql: "INSERT INTO messages (id, role, content, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
 					args: [generateId(), "user", messageText, Date.now(), conversationId],
 				});
 
+				// Extract reasoning text if available
+				const reasoningText =
+					reasoning
+						?.filter((r): r is { type: "reasoning"; text: string } => r.type === "reasoning")
+						.map((r) => r.text)
+						.join("") || null;
+
 				await turso.execute({
-					sql: "INSERT INTO messages (id, role, content, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-					args: [generateId(), "assistant", text, Date.now(), conversationId],
+					sql: "INSERT INTO messages (id, role, content, reasoning, created_at, conversation_id) VALUES (?, ?, ?, ?, ?, ?)",
+					args: [generateId(), "assistant", text, reasoningText, Date.now(), conversationId],
 				});
 
 				await turso.execute({
@@ -57,5 +64,6 @@ export async function POST(req: Request) {
 	// Ensure the stream is consumed so onFinish gets called
 	result.consumeStream();
 
-	return result.toUIMessageStreamResponse();
+	// sendReasoning: true will stream reasoning tokens to the client (for models that support it)
+	return result.toUIMessageStreamResponse({ sendReasoning: true });
 }

@@ -9,6 +9,7 @@ interface Message {
 	id: unknown;
 	role: unknown;
 	content: unknown;
+	reasoning?: string | null;
 	createdAt: Date;
 	conversationId: unknown;
 }
@@ -26,7 +27,6 @@ interface ChatContentProps {
 }
 
 export function ChatContent({ id, conversationPromise }: ChatContentProps) {
-
 	const conversation = use(conversationPromise);
 
 	// Handle not found case
@@ -35,12 +35,24 @@ export function ChatContent({ id, conversationPromise }: ChatContentProps) {
 	}
 
 	// Transform messages to UIMessage format
-	const initialMessages: UIMessage[] = conversation.messages.map((m) => ({
-		id: m.id as string,
-		role: m.role as "user" | "assistant",
-		parts: [{ type: "text" as const, text: m.content as string }],
-		createdAt: m.createdAt,
-	}));
+	const initialMessages: UIMessage[] = conversation.messages.map((m) => {
+		const parts: UIMessage["parts"] = [];
+
+		// Add reasoning part first if it exists (for assistant messages)
+		if (m.role === "assistant" && m.reasoning) {
+			parts.push({ type: "reasoning" as const, text: m.reasoning });
+		}
+
+		// Add text content
+		parts.push({ type: "text" as const, text: m.content as string });
+
+		return {
+			id: m.id as string,
+			role: m.role as "user" | "assistant",
+			parts,
+			createdAt: m.createdAt,
+		};
+	});
 
 	return <ChatInterface id={id} initialMessages={initialMessages} />;
 }

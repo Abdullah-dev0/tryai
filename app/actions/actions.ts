@@ -52,6 +52,7 @@ export const getConversation = async (id: string) => {
 				role: m.role as string,
 				content: m.content as string,
 				createdAt: new Date(m.created_at as number),
+				reasoning: m.reasoning as string | null,
 				conversationId: m.conversation_id as string,
 			})),
 		};

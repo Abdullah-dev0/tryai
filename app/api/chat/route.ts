@@ -9,36 +9,29 @@ const openrouter = createOpenRouter({
 });
 
 export async function POST(req: Request) {
-	const { messages, model, conversationId }: { messages: UIMessage[]; model?: string; conversationId?: string } =
-		await req.json();
+	const {
+		message,
+		body: { model, conversationId } = {},
+	}: { message: UIMessage; body?: { model?: string; conversationId?: string } } = await req.json();
+	console.log("Received model in request:", model, message);
 
-	// Save user message
-	const lastMessage = messages[messages.length - 1];
-	if (lastMessage.role === "user" && conversationId) {
-		const textContent = lastMessage.parts
-			.filter((part): part is { type: "text"; text: string } => part.type === "text")
-			.map((part) => part.text)
-			.join("");
-
-		await turso.execute({
-			sql: "INSERT INTO messages (id, role, content, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-			args: [generateId(), "user", textContent, Date.now(), conversationId],
-		});
-
-		await turso.execute({
-			sql: "UPDATE conversations SET updated_at = ? WHERE id = ?",
-			args: [Date.now(), conversationId],
-		});
-	}
+	const targetModel = model && model.trim().length > 0 ? model : "arcee-ai/trinity-mini:free";
 
 	const result = streamText({
-		model: openrouter("arcee-ai/trinity-mini:free"),
-		messages: convertToModelMessages(messages),
+		model: openrouter(targetModel),
+		messages: convertToModelMessages([message]),
+		system:
+			"You are a helpful AI assistant. Answer the user's questions to the best of your ability always being concise and reply on markdown format. If you do not know the answer, just say that you do not know. Do not try to make up an answer.",
 		async onFinish({ text }) {
 			if (conversationId) {
 				await turso.execute({
 					sql: "INSERT INTO messages (id, role, content, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
 					args: [generateId(), "assistant", text, Date.now(), conversationId],
+				});
+
+				await turso.execute({
+					sql: "INSERT INTO messages (id, role, content, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
+					args: [generateId(), "user", message.parts.map((text) => text).join(""), Date.now(), conversationId],
 				});
 
 				await turso.execute({

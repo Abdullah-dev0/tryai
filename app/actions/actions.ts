@@ -2,7 +2,6 @@
 
 import { turso, generateId } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { unstable_cache } from "next/cache";
 import type { Row } from "@libsql/client";
 
 export async function getConversations() {
@@ -29,7 +28,7 @@ export async function getConversations() {
 	}
 }
 
-const fetchConversation = async (id: string) => {
+export const getConversation = async (id: string) => {
 	try {
 		const convResult = await turso.execute({
 			sql: "SELECT * FROM conversations WHERE id = ?",
@@ -61,10 +60,6 @@ const fetchConversation = async (id: string) => {
 		return null;
 	}
 };
-
-export async function getConversation(id: string) {
-	return unstable_cache(() => fetchConversation(id), [`conversation-${id}`], { tags: [`conversation-${id}`] })();
-}
 
 export async function createConversation() {
 	try {

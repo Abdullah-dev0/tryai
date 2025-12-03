@@ -8,8 +8,8 @@ import { ArrowUp, Square, RotateCcw, AlertCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageList } from "@/components/chat/messageList";
-import { ModelSelector } from "@/components/chat/modelSelector";
 import { cn } from "@/lib/utils";
+import { ModelSelector } from "@/components/chat/modelSelector";
 
 interface ChatInterfaceProps {
 	id?: string;
@@ -17,7 +17,7 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) {
-	const [model, setModel] = React.useState("google/gemini-2.0-flash-exp:free");
+	const [model, setModel] = React.useState("arcee-ai/trinity-mini:free");
 	const [input, setInput] = React.useState("");
 	const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -27,9 +27,10 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 		messages: initialMessages,
 		transport: new DefaultChatTransport({
 			api: "/api/chat",
-			body: { model, conversationId: id },
+			prepareSendMessagesRequest({ messages, body }) {
+				return { body: { message: messages[messages.length - 1], body, conversationId: id } };
+			},
 		}),
-		experimental_throttle: 50, // Throttle UI updates for better performance
 		onFinish: () => {
 			textareaRef.current?.focus();
 		},
@@ -45,7 +46,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 	// Auto-scroll to bottom when new messages arrive
 	React.useEffect(() => {
 		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, [messages, status]);
+	}, [status]);
 
 	// Auto-resize textarea
 	React.useEffect(() => {
@@ -58,7 +59,15 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (input.trim() && status === "ready") {
-			sendMessage({ text: input });
+			sendMessage(
+				{ text: input },
+				{
+					body: {
+						model,
+						conversationId: id,
+					},
+				},
+			);
 			setInput("");
 			if (textareaRef.current) {
 				textareaRef.current.style.height = "auto";
@@ -85,9 +94,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 			const lastMsg = prev[prev.length - 1];
 			// Check if the last message has error-like content in parts
 			if (lastMsg?.role === "assistant") {
-				const textParts = lastMsg.parts?.filter(
-					(p): p is { type: "text"; text: string } => p.type === "text"
-				);
+				const textParts = lastMsg.parts?.filter((p): p is { type: "text"; text: string } => p.type === "text");
 				const hasErrorText = textParts?.some((p) => p.text.includes("error"));
 				if (hasErrorText) {
 					return prev.slice(0, -1);
@@ -102,7 +109,6 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 			{/* Header */}
 			<header className="flex h-14 items-center justify-between border-b px-4">
 				<h1 className="text-sm font-medium text-muted-foreground">Chat</h1>
-				<ModelSelector value={model} onValueChange={setModel} />
 			</header>
 
 			{/* Messages */}
@@ -123,8 +129,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 							variant="ghost"
 							size="sm"
 							onClick={handleRetry}
-							className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-						>
+							className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10">
 							<RotateCcw className="h-3 w-3 mr-1" />
 							Retry
 						</Button>
@@ -132,8 +137,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 							variant="ghost"
 							size="icon"
 							onClick={dismissError}
-							className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-						>
+							className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10">
 							<X className="h-3 w-3" />
 						</Button>
 					</div>
@@ -141,34 +145,28 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 			)}
 
 			{/* Input */}
-			<footer className="border-t p-4">
-				<form onSubmit={handleSubmit} className="mx-auto max-w-2xl">
-					<div className="relative rounded-lg border bg-card">
+
+			<form onSubmit={handleSubmit} className="mx-auto max-w-2xl  w-2xl space-y-2">
+				<div className="rounded-lg border bg-card shadow-sm">
+					<div className="flex flex-col gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+						<div>
+							<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/80">OpenRouter</p>
+							<p className="text-xs text-muted-foreground">Choose a free model</p>
+						</div>
+						<ModelSelector value={model} onValueChange={setModel} className="w-full sm:w-auto" />
+					</div>
+					<div className="relative px-3 pb-3 pt-2">
 						<Textarea
 							ref={textareaRef}
 							value={input}
 							onChange={(e) => setInput(e.target.value)}
 							onKeyDown={handleKeyDown}
 							placeholder={status === "ready" ? "Send a message..." : "Waiting for response..."}
-							className="min-h-[52px] max-h-[200px] resize-none border-0 bg-transparent pr-14 focus-visible:ring-0"
+							className="min-h-[52px] max-h-[200px] w-full resize-none border-0 bg-transparent pr-14 text-sm focus-visible:ring-0"
 							disabled={status !== "ready"}
 							rows={1}
 						/>
-						<div className="absolute bottom-2 right-2 flex gap-1">
-							{/* Retry button - show when there are messages and ready/error */}
-							{canRetry && hasMessages && !isLoading && (
-								<Button
-									type="button"
-									size="icon"
-									variant="ghost"
-									onClick={handleRetry}
-									className="h-8 w-8 text-muted-foreground hover:text-foreground"
-									title="Regenerate response"
-								>
-									<RotateCcw className="h-4 w-4" />
-								</Button>
-							)}
-
+						<div className="absolute bottom-5 right-5 flex gap-1">
 							{/* Stop button - show when loading */}
 							{isLoading ? (
 								<Button
@@ -177,8 +175,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 									variant="ghost"
 									onClick={stop}
 									className="h-8 w-8"
-									title="Stop generating"
-								>
+									title="Stop generating">
 									<Square className="h-4 w-4" />
 								</Button>
 							) : (
@@ -190,20 +187,17 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 										"h-8 w-8",
 										input.trim() && status === "ready"
 											? "bg-foreground text-background hover:bg-foreground/90"
-											: "bg-muted text-muted-foreground"
+											: "bg-muted text-muted-foreground",
 									)}
-									title="Send message"
-								>
+									title="Send message">
 									<ArrowUp className="h-4 w-4" />
 								</Button>
 							)}
 						</div>
 					</div>
-					<p className="mt-2 text-center text-xs text-muted-foreground">
-						Press Enter to send, Shift + Enter for new line
-					</p>
-				</form>
-			</footer>
+				</div>
+				<p className="text-center text-xs text-muted-foreground">Press Enter to send · Shift + Enter for new line</p>
+			</form>
 		</div>
 	);
 }

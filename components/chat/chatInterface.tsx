@@ -145,8 +145,8 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 
 			{/* Input */}
 
-			<form onSubmit={handleSubmit} className="mx-auto max-w-2xl  w-2xl space-y-2">
-				<div className="rounded-lg border bg-card shadow-sm">
+			<form onSubmit={handleSubmit} className="mx-auto w-full space-y-2">
+				<div className="rounded-lg border bg-card shadow-sm max-w-3xl mx-auto">
 					<div className="flex flex-col gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
 						<div>
 							<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/80">OpenRouter</p>

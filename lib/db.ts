@@ -21,7 +21,7 @@ export async function initDB() {
 			`CREATE TABLE IF NOT EXISTS messages (
 			id TEXT PRIMARY KEY,
 			role TEXT NOT NULL,
-			content TEXT NOT NULL,
+			parts TEXT NOT NULL,
 			created_at INTEGER NOT NULL,
 			conversation_id TEXT NOT NULL,
 			FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE

@@ -3,13 +3,39 @@
 import * as React from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { ArrowUp, Square, RotateCcw, AlertCircle, X } from "lucide-react";
+import {
+	ArrowUp,
+	Square,
+	RotateCcw,
+	AlertCircle,
+	X,
+	Sparkles,
+	Compass,
+	Code2,
+	GraduationCap,
+	Globe,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageList } from "@/components/chat/messageList";
 import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/chat/modelSelector";
+
+const quickActions = [
+	{ icon: Sparkles, label: "Create", color: "text-purple-400" },
+	{ icon: Compass, label: "Explore", color: "text-blue-400" },
+	{ icon: Code2, label: "Code", color: "text-green-400" },
+	{ icon: GraduationCap, label: "Learn", color: "text-orange-400" },
+];
+
+const suggestedPrompts = [
+	"How does AI work?",
+	"Are black holes real?",
+	'How many Rs are in the word "strawberry"?',
+	"What is the meaning of life?",
+];
+
 interface ChatInterfaceProps {
 	id?: string;
 	initialMessages?: UIMessage[];
@@ -103,19 +129,57 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 		});
 	};
 
-	return (
-		<div className="flex h-full flex-col bg-background">
-			{/* Header */}
-			<header className="flex h-14 items-center justify-between border-b px-4">
-				<h1 className="text-sm font-medium text-muted-foreground">Chat</h1>
-			</header>
+	const handlePromptClick = (prompt: string) => {
+		setInput(prompt);
+		textareaRef.current?.focus();
+	};
 
-			{/* Messages */}
+	return (
+		<div className="flex h-full flex-col bg-background relative">
+			{/* Main Content */}
 			<main className="flex-1 overflow-y-auto">
-				<div className="max-w-4xl mx-auto px-4 py-8">
-					<MessageList messages={messages} status={status} />
-					<div ref={messagesEndRef} />
-				</div>
+				{hasMessages ? (
+					<div className="max-w-4xl mx-auto px-4 py-8">
+						<MessageList messages={messages} status={status} />
+						<div ref={messagesEndRef} />
+					</div>
+				) : (
+					/* Welcome Screen */
+					<div className="flex flex-col items-center justify-center h-full px-4">
+						<div className="max-w-2xl w-full space-y-8">
+							{/* Greeting */}
+							<div className="text-center space-y-2">
+								<h1 className="text-3xl font-semibold text-foreground">How can I help you today?</h1>
+							</div>
+
+							{/* Quick Actions */}
+							<div className="flex flex-wrap justify-center gap-3">
+								{quickActions.map((action) => (
+									<Button
+										key={action.label}
+										variant="outline"
+										className="gap-2 rounded-full px-4 py-2 h-auto border-border/50 hover:bg-accent/50"
+										onClick={() => handlePromptClick(`Help me ${action.label.toLowerCase()}`)}>
+										<action.icon className={cn("h-4 w-4", action.color)} />
+										<span>{action.label}</span>
+									</Button>
+								))}
+							</div>
+
+							{/* Suggested Prompts */}
+							<div className="space-y-2">
+								{suggestedPrompts.map((prompt) => (
+									<Button
+										key={prompt}
+										onClick={() => handlePromptClick(prompt)}
+										className="w-full text-left px-4 py-3 rounded-xl bg-card/50 hover:bg-card border border-border/30 hover:border-border/50 transition-colors text-muted-foreground hover:text-foreground">
+										{prompt}
+									</Button>
+								))}
+							</div>
+						</div>
+					</div>
+				)}
 			</main>
 
 			{/* Error Banner */}
@@ -144,59 +208,67 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 			)}
 
 			{/* Input */}
-
-			<form onSubmit={handleSubmit} className="mx-auto w-full space-y-2">
-				<div className="rounded-lg border bg-card shadow-sm max-w-3xl mx-auto">
-					<div className="flex flex-col gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-						<div>
-							<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/80">OpenRouter</p>
-							<p className="text-xs text-muted-foreground">Choose a free model</p>
+			<div className="border-t bg-background/80 backdrop-blur-sm">
+				<form onSubmit={handleSubmit} className="mx-auto max-w-3xl px-4 py-4">
+					<div className="rounded-2xl border bg-card shadow-lg">
+						{/* Textarea */}
+						<div className="relative px-4 pt-4 pb-2">
+							<Textarea
+								ref={textareaRef}
+								value={input}
+								onChange={(e) => setInput(e.target.value)}
+								onKeyDown={handleKeyDown}
+								placeholder="Type your message here..."
+								disabled={isLoading}
+								rows={1}
+							/>
 						</div>
-						<ModelSelector value={model} onValueChange={setModel} className="w-full sm:w-auto" />
-					</div>
-					<div className="relative px-3 pb-3 pt-2">
-						<Textarea
-							ref={textareaRef}
-							value={input}
-							onChange={(e) => setInput(e.target.value)}
-							onKeyDown={handleKeyDown}
-							placeholder={status === "ready" || status === "error" ? "Send a message..." : "Waiting for response..."}
-							className="min-h-[52px] max-h-[200px] w-full resize-none border-0 bg-transparent pr-14 text-sm focus-visible:ring-0"
-							disabled={isLoading}
-							rows={1}
-						/>
-						<div className="absolute bottom-5 right-5 flex gap-1">
-							{/* Stop button - show when loading */}
-							{isLoading ? (
+
+						{/* Bottom bar with model selector and actions */}
+						<div className="flex items-center justify-between px-3 pb-3">
+							<div className="flex items-center gap-1">
+								<ModelSelector value={model} onValueChange={setModel} />
 								<Button
 									type="button"
-									size="icon"
 									variant="ghost"
-									onClick={stop}
-									className="h-8 w-8"
-									title="Stop generating">
-									<Square className="h-4 w-4" />
+									size="sm"
+									className="h-8 gap-1.5 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground">
+									<Globe className="h-3.5 w-3.5" />
+									Search
 								</Button>
-							) : (
-								<Button
-									type="submit"
-									size="icon"
-									disabled={!input.trim() || isLoading}
-									className={cn(
-										"h-8 w-8",
-										input.trim() && !isLoading
-											? "bg-foreground text-background hover:bg-foreground/90"
-											: "bg-muted text-muted-foreground",
-									)}
-									title="Send message">
-									<ArrowUp className="h-4 w-4" />
-								</Button>
-							)}
+							</div>
+
+							<div className="flex items-center gap-1">
+								{isLoading ? (
+									<Button
+										type="button"
+										size="icon"
+										variant="ghost"
+										onClick={stop}
+										className="h-9 w-9 rounded-full"
+										title="Stop generating">
+										<Square className="h-4 w-4" />
+									</Button>
+								) : (
+									<Button
+										type="submit"
+										size="icon"
+										disabled={!input.trim() || isLoading}
+										className={cn(
+											"h-9 w-9 rounded-full transition-all",
+											input.trim() && !isLoading
+												? "bg-emerald-500 text-white hover:bg-emerald-600"
+												: "bg-muted text-muted-foreground",
+										)}
+										title="Send message">
+										<ArrowUp className="h-4 w-4" />
+									</Button>
+								)}
+							</div>
 						</div>
 					</div>
-				</div>
-				<p className="text-center text-xs text-muted-foreground">Press Enter to send · Shift + Enter for new line</p>
-			</form>
+				</form>
+			</div>
 		</div>
 	);
 }

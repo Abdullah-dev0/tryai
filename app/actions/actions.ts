@@ -11,17 +11,32 @@ export async function getConversations() {
 				c.id,
 				c.created_at,
 				c.updated_at,
-				(SELECT content FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message
+				(SELECT parts FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_parts
 			FROM conversations c
 			ORDER BY c.updated_at DESC
 		`);
 
-		return result.rows.map((row) => ({
-			id: row.id as string,
-			createdAt: new Date(row.created_at as number),
-			updatedAt: new Date(row.updated_at as number),
-			lastMessage: row.last_message as string | null,
-		}));
+		return result.rows.map((row) => {
+			// Extract text from parts JSON for preview
+			let lastMessage: string | null = null;
+			if (row.last_parts) {
+				try {
+					const parts = JSON.parse(row.last_parts as string);
+					lastMessage = parts
+						.filter((p: { type: string }) => p.type === "text")
+						.map((p: { text: string }) => p.text)
+						.join("");
+				} catch {
+					lastMessage = null;
+				}
+			}
+			return {
+				id: row.id as string,
+				createdAt: new Date(row.created_at as number),
+				updatedAt: new Date(row.updated_at as number),
+				lastMessage,
+			};
+		});
 	} catch (error) {
 		console.error("Failed to fetch conversations:", error);
 		return [];
@@ -37,23 +52,18 @@ export const getConversation = async (id: string) => {
 
 		if (convResult.rows.length === 0) return null;
 
-		const conv = convResult.rows[0];
 		const messagesResult = await turso.execute({
 			sql: "SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC",
 			args: [id],
 		});
 
+		// Return UIMessage[] directly - parts are stored as JSON
 		return {
-			id: conv.id as string,
-			createdAt: new Date(conv.created_at as number),
-			updatedAt: new Date(conv.updated_at as number),
 			messages: messagesResult.rows.map((m: Row) => ({
 				id: m.id as string,
-				role: m.role as string,
-				content: m.content as string,
+				role: m.role as "user" | "assistant",
+				parts: JSON.parse(m.parts as string),
 				createdAt: new Date(m.created_at as number),
-				reasoning: m.reasoning as string | null,
-				conversationId: m.conversation_id as string,
 			})),
 		};
 	} catch (error) {

@@ -1,6 +1,7 @@
+import { getConversation } from "@/app/actions/actions";
+import { turso } from "@/lib/db";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { streamText, convertToModelMessages, type UIMessage } from "ai";
-import { turso, generateId } from "@/lib/db";
+import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 export const maxDuration = 30;
 
@@ -13,7 +14,6 @@ export async function POST(req: Request) {
 		message,
 		body: { model, conversationId } = {},
 	}: { message: UIMessage; body?: { model?: string; conversationId?: string } } = await req.json();
-	console.log("Received model in request:", model, message);
 
 	const targetModel = model && model.trim().length > 0 ? model : "arcee-ai/trinity-mini:free";
 
@@ -21,50 +21,57 @@ export async function POST(req: Request) {
 		return new Response("Invalid message", { status: 400 });
 	}
 
-	const messageText = message.parts
-		.filter((part): part is Extract<typeof part, { type: "text" }> => part.type === "text")
-		.map((part) => part.text)
-		.join("");
+	// Load previous messages from database (already in UIMessage format)
+	const previousConversation = await getConversation(conversationId!);
+	const previousMessages: UIMessage[] = previousConversation?.messages ?? [];
+
+	// Combine previous messages with the new message
+	const messages = [...previousMessages, message];
 
 	const result = streamText({
 		model: openrouter(targetModel),
-		messages: convertToModelMessages([message]),
+		messages: convertToModelMessages(messages),
 		system:
 			"You are a helpful AI assistant. Answer the user's questions to the best of your ability always being concise and reply on markdown format. If you do not know the answer, just say that you do not know. Do not try to make up an answer.",
-		async onFinish({ text, reasoning, totalUsage }) {
-			console.log("Usage:", totalUsage);
+		onError(error) {
+			console.error("Stream error:", error);
+		},
+	});
+
+	// Consume the stream to ensure it runs to completion even if client disconnects
+	result.consumeStream();
+
+	return result.toUIMessageStreamResponse({
+		sendReasoning: true,
+		originalMessages: messages,
+		async onFinish({ messages: finalMessages }) {
 			if (conversationId) {
-				await turso.execute({
-					sql: "INSERT INTO messages (id, role, content, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-					args: [generateId(), "user", messageText, Date.now(), conversationId],
-				});
+				// Get the last two messages (user message and assistant response)
+				const userMsg = finalMessages[finalMessages.length - 2];
+				const assistantMsg = finalMessages[finalMessages.length - 1];
 
-				// Extract reasoning text if available
-				const reasoningText =
-					reasoning
-						?.filter((r): r is { type: "reasoning"; text: string } => r.type === "reasoning")
-						.map((r) => r.text)
-						.join("") || null;
+				// Save user message
+				if (userMsg && userMsg.role === "user") {
+					await turso.execute({
+						sql: "INSERT INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
+						args: [userMsg.id, "user", JSON.stringify(userMsg.parts), Date.now(), conversationId],
+					});
+				}
 
-				await turso.execute({
-					sql: "INSERT INTO messages (id, role, content, reasoning, created_at, conversation_id) VALUES (?, ?, ?, ?, ?, ?)",
-					args: [generateId(), "assistant", text, reasoningText, Date.now(), conversationId],
-				});
+				// Save assistant message
+				if (assistantMsg && assistantMsg.role === "assistant") {
+					await turso.execute({
+						sql: "INSERT INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
+						args: [assistantMsg.id, "assistant", JSON.stringify(assistantMsg.parts), Date.now(), conversationId],
+					});
+				}
 
+				// Update conversation timestamp
 				await turso.execute({
 					sql: "UPDATE conversations SET updated_at = ? WHERE id = ?",
 					args: [Date.now(), conversationId],
 				});
 			}
 		},
-		onError(error) {
-			console.error("Stream error:", error);
-		},
 	});
-
-	// Ensure the stream is consumed so onFinish gets called
-	result.consumeStream();
-
-	// sendReasoning: true will stream reasoning tokens to the client (for models that support it)
-	return result.toUIMessageStreamResponse({ sendReasoning: true });
 }

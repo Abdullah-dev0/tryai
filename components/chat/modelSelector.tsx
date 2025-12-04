@@ -87,6 +87,13 @@ const models: ModelOption[] = [
 		context: "131K ctx",
 		inputs: "Text",
 	},
+	{
+		value: "z-ai/glm-4.5-air:free",
+		label: "GLM 4.5 Air",
+		tagline: "Z.AI's efficient chat model",
+		context: "131K ctx",
+		inputs: "Text",
+	},
 ];
 
 interface ModelSelectorProps {
@@ -103,20 +110,20 @@ export function ModelSelector({ value, onValueChange, className }: ModelSelector
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<Button
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					className={cn(
-						"h-8 min-w-[180px] justify-between rounded-full border-border/60 bg-background text-xs font-medium",
+						"h-8 gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50",
 						className,
 					)}>
-					<span className="truncate text-left">{selectedModel?.label || "Select a model"}</span>
-					<ChevronDown className="h-4 w-4 opacity-50" />
+					<span className="truncate">{selectedModel?.label || "Select model"}</span>
+					<ChevronDown className="h-3 w-3 opacity-60" />
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent className="w-[320px] p-0" align="end">
+			<PopoverContent className="w-[360px] p-0" align="start" sideOffset={8}>
 				<Command>
-					<CommandInput placeholder="Search free OpenRouter models..." />
-					<CommandList>
+					<CommandInput placeholder="Search models..." className="h-10" />
+					<CommandList className="max-h-[300px]">
 						<CommandEmpty>No model found.</CommandEmpty>
 						<CommandGroup>
 							{models.map((model) => (
@@ -126,15 +133,19 @@ export function ModelSelector({ value, onValueChange, className }: ModelSelector
 									onSelect={(currentValue) => {
 										onValueChange(currentValue);
 										setOpen(false);
-									}}>
-									<Check className={cn("mr-2 h-4 w-4", value === model.value ? "opacity-100" : "opacity-0")} />
-									<div className="flex flex-col gap-1 text-left">
-										<span className="text-sm font-medium leading-tight">{model.label}</span>
-										<span className="text-xs text-muted-foreground">{model.tagline}</span>
-										<span className="font-mono text-[11px] text-muted-foreground/80">{model.value}</span>
-										<span className="text-[11px] text-muted-foreground">
-											{model.context} · {model.inputs}
-										</span>
+									}}
+									className="flex items-start gap-3 py-3 px-3">
+									<Check
+										className={cn("mt-0.5 h-4 w-4 shrink-0", value === model.value ? "opacity-100" : "opacity-0")}
+									/>
+									<div className="flex flex-col gap-0.5 min-w-0">
+										<div className="flex items-center gap-2">
+											<span className="text-sm font-medium">{model.label}</span>
+											<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+												{model.context}
+											</span>
+										</div>
+										<span className="text-xs text-muted-foreground truncate">{model.tagline}</span>
 									</div>
 								</CommandItem>
 							))}

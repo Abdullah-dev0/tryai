@@ -31,7 +31,8 @@ export async function POST(req: Request) {
 		messages: convertToModelMessages([message]),
 		system:
 			"You are a helpful AI assistant. Answer the user's questions to the best of your ability always being concise and reply on markdown format. If you do not know the answer, just say that you do not know. Do not try to make up an answer.",
-		async onFinish({ text, reasoning }) {
+		async onFinish({ text, reasoning, totalUsage }) {
+			console.log("Usage:", totalUsage);
 			if (conversationId) {
 				await turso.execute({
 					sql: "INSERT INTO messages (id, role, content, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",

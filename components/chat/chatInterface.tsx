@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { MessageList } from "@/components/chat/messageList";
 import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/chat/modelSelector";
-
 interface ChatInterfaceProps {
 	id?: string;
 	initialMessages?: UIMessage[];
@@ -58,7 +57,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (input.trim() && status === "ready") {
+		if (input.trim() && !isLoading) {
 			sendMessage(
 				{ text: input },
 				{
@@ -113,7 +112,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 
 			{/* Messages */}
 			<main className="flex-1 overflow-y-auto">
-				<div className="mx-auto max-w-2xl px-4 py-8">
+				<div className="max-w-4xl mx-auto px-4 py-8">
 					<MessageList messages={messages} status={status} />
 					<div ref={messagesEndRef} />
 				</div>
@@ -161,9 +160,9 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 							value={input}
 							onChange={(e) => setInput(e.target.value)}
 							onKeyDown={handleKeyDown}
-							placeholder={status === "ready" ? "Send a message..." : "Waiting for response..."}
+							placeholder={status === "ready" || status === "error" ? "Send a message..." : "Waiting for response..."}
 							className="min-h-[52px] max-h-[200px] w-full resize-none border-0 bg-transparent pr-14 text-sm focus-visible:ring-0"
-							disabled={status !== "ready"}
+							disabled={isLoading}
 							rows={1}
 						/>
 						<div className="absolute bottom-5 right-5 flex gap-1">
@@ -182,10 +181,10 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 								<Button
 									type="submit"
 									size="icon"
-									disabled={!input.trim() || status !== "ready"}
+									disabled={!input.trim() || isLoading}
 									className={cn(
 										"h-8 w-8",
-										input.trim() && status === "ready"
+										input.trim() && !isLoading
 											? "bg-foreground text-background hover:bg-foreground/90"
 											: "bg-muted text-muted-foreground",
 									)}

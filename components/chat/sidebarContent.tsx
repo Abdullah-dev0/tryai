@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { MessageSquare, Plus, Trash2, Search } from "lucide-react";
 import { useTransition, useState, useMemo, use } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn, groupByDate, stripMarkdown } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -23,45 +23,6 @@ interface SidebarContentProps {
 	conversations: Promise<Conversation[]>;
 }
 
-// Helper to group conversations by date
-function groupByDate(conversations: Conversation[]) {
-	const now = new Date();
-	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-	const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-	const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-	const groups: { label: string; conversations: Conversation[] }[] = [
-		{ label: "Today", conversations: [] },
-		{ label: "Yesterday", conversations: [] },
-		{ label: "Previous 7 Days", conversations: [] },
-		{ label: "Older", conversations: [] },
-	];
-
-	conversations.forEach((conv) => {
-		const date = new Date(conv.updatedAt);
-		if (date >= today) {
-			groups[0].conversations.push(conv);
-		} else if (date >= yesterday) {
-			groups[1].conversations.push(conv);
-		} else if (date >= lastWeek) {
-			groups[2].conversations.push(conv);
-		} else {
-			groups[3].conversations.push(conv);
-		}
-	});
-
-	return groups.filter((g) => g.conversations.length > 0);
-}
-
-// Helper to strip markdown formatting for clean display
-function stripMarkdown(text: string): string {
-	return text
-		.replace(/[#*_`~>\[\]\(\)]/g, "") // Remove markdown symbols
-		.replace(/\n+/g, " ") // Replace newlines with space
-		.replace(/\s+/g, " ") // Collapse multiple spaces
-		.trim();
-}
-
 export function SidebarContent({ conversations }: SidebarContentProps) {
 	const router = useRouter();
 	const pathname = usePathname();
@@ -71,8 +32,8 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 
 	// Extract current chat ID from pathname
 	const currentId = pathname.startsWith("/chat/") ? pathname.split("/")[2] : undefined;
-	// Filter and group conversations
 
+	// Filter and group conversations
 	const filteredConversations = useMemo(() => {
 		if (!searchQuery.trim()) return conversationsData;
 		return conversationsData.filter((conv) => conv.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -145,7 +106,7 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 									{group.label}
 								</p>
 								<div className="space-y-0.5">
-									{group.conversations.map((conversation) => {
+									{group.items.map((conversation) => {
 										const isActive = currentId === conversation.id;
 										const rawTitle = conversation.lastMessage ? stripMarkdown(conversation.lastMessage) : null;
 										const title = rawTitle

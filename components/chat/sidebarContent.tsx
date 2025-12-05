@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { MessageSquare, Plus, Trash2, Search, User } from "lucide-react";
-import { useTransition, useState, useMemo } from "react";
+import { MessageSquare, Plus, Trash2, Search } from "lucide-react";
+import { useTransition, useState, useMemo, use } from "react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ interface Conversation {
 }
 
 interface SidebarContentProps {
-	conversations: Conversation[];
+	conversations: Promise<Conversation[]>;
 }
 
 // Helper to group conversations by date
@@ -53,20 +53,30 @@ function groupByDate(conversations: Conversation[]) {
 	return groups.filter((g) => g.conversations.length > 0);
 }
 
+// Helper to strip markdown formatting for clean display
+function stripMarkdown(text: string): string {
+	return text
+		.replace(/[#*_`~>\[\]\(\)]/g, "") // Remove markdown symbols
+		.replace(/\n+/g, " ") // Replace newlines with space
+		.replace(/\s+/g, " ") // Collapse multiple spaces
+		.trim();
+}
+
 export function SidebarContent({ conversations }: SidebarContentProps) {
 	const router = useRouter();
 	const pathname = usePathname();
 	const [isPending, startTransition] = useTransition();
 	const [searchQuery, setSearchQuery] = useState("");
+	const conversationsData = use(conversations);
 
 	// Extract current chat ID from pathname
 	const currentId = pathname.startsWith("/chat/") ? pathname.split("/")[2] : undefined;
-
 	// Filter and group conversations
+
 	const filteredConversations = useMemo(() => {
-		if (!searchQuery.trim()) return conversations;
-		return conversations.filter((conv) => conv.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase()));
-	}, [conversations, searchQuery]);
+		if (!searchQuery.trim()) return conversationsData;
+		return conversationsData.filter((conv) => conv.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase()));
+	}, [conversationsData, searchQuery]);
 
 	const groupedConversations = useMemo(() => groupByDate(filteredConversations), [filteredConversations]);
 
@@ -92,14 +102,7 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 	};
 
 	return (
-		<div className="hidden w-64 flex-col bg-card md:flex">
-			{/* Header with Logo */}
-			<div className="flex h-14 items-center px-4">
-				<Link href="/" className="text-lg font-bold hover:opacity-80 transition-opacity">
-					TryAI
-				</Link>
-			</div>
-
+		<>
 			{/* New Chat Button */}
 			<div className="px-3 pb-2">
 				<Button onClick={handleNewChat} variant={"outline"} className="w-full" disabled={isPending}>
@@ -144,7 +147,12 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 								<div className="space-y-0.5">
 									{group.conversations.map((conversation) => {
 										const isActive = currentId === conversation.id;
-										const title = conversation.lastMessage?.substring(0, 32) || "New chat";
+										const rawTitle = conversation.lastMessage ? stripMarkdown(conversation.lastMessage) : null;
+										const title = rawTitle
+											? rawTitle.length > 20
+												? rawTitle.substring(0, 20) + "..."
+												: rawTitle
+											: "New chat";
 
 										return (
 											<Link
@@ -176,19 +184,6 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 					</div>
 				)}
 			</ScrollArea>
-
-			{/* User Profile */}
-			<div className="border-t p-3">
-				<div className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-accent/50 transition-colors cursor-pointer">
-					<div className="h-8 w-8 rounded-full bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-						<User className="h-4 w-4 text-white" />
-					</div>
-					<div className="flex-1 min-w-0">
-						<p className="text-sm font-medium truncate">User</p>
-						<p className="text-xs text-muted-foreground">Free</p>
-					</div>
-				</div>
-			</div>
-		</div>
+		</>
 	);
 }

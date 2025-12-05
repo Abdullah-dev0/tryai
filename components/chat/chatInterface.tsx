@@ -3,38 +3,14 @@
 import * as React from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import {
-	ArrowUp,
-	Square,
-	RotateCcw,
-	AlertCircle,
-	X,
-	Sparkles,
-	Compass,
-	Code2,
-	GraduationCap,
-	Globe,
-} from "lucide-react";
+import { ArrowUp, Square, RotateCcw, AlertCircle, Globe } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageList } from "@/components/chat/messageList";
 import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/chat/modelSelector";
-
-const quickActions = [
-	{ icon: Sparkles, label: "Create", color: "text-purple-400" },
-	{ icon: Compass, label: "Explore", color: "text-blue-400" },
-	{ icon: Code2, label: "Code", color: "text-green-400" },
-	{ icon: GraduationCap, label: "Learn", color: "text-orange-400" },
-];
-
-const suggestedPrompts = [
-	"How does AI work?",
-	"Are black holes real?",
-	'How many Rs are in the word "strawberry"?',
-	"What is the meaning of life?",
-];
+import { QUICK_ACTIONS, SUGGESTED_PROMPTS, DEFAULT_MODEL } from "@/lib/constants";
 
 interface ChatInterfaceProps {
 	id?: string;
@@ -42,12 +18,12 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) {
-	const [model, setModel] = React.useState("arcee-ai/trinity-mini:free");
+	const [model, setModel] = React.useState(DEFAULT_MODEL);
 	const [input, setInput] = React.useState("");
 	const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
-	const { messages, sendMessage, status, stop, error, regenerate, setMessages } = useChat({
+	const { messages, sendMessage, status, stop, error, regenerate } = useChat({
 		id,
 		messages: initialMessages,
 		transport: new DefaultChatTransport({
@@ -113,22 +89,6 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 		}
 	};
 
-	const dismissError = () => {
-		// Clear error state by removing any error placeholder messages
-		setMessages((prev) => {
-			const lastMsg = prev[prev.length - 1];
-			// Check if the last message has error-like content in parts
-			if (lastMsg?.role === "assistant") {
-				const textParts = lastMsg.parts?.filter((p): p is { type: "text"; text: string } => p.type === "text");
-				const hasErrorText = textParts?.some((p) => p.text.includes("error"));
-				if (hasErrorText) {
-					return prev.slice(0, -1);
-				}
-			}
-			return prev;
-		});
-	};
-
 	const handlePromptClick = (prompt: string) => {
 		setInput(prompt);
 		textareaRef.current?.focus();
@@ -154,7 +114,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 
 							{/* Quick Actions */}
 							<div className="flex flex-wrap justify-center gap-3">
-								{quickActions.map((action) => (
+								{QUICK_ACTIONS.map((action) => (
 									<Button
 										key={action.label}
 										variant="outline"
@@ -168,7 +128,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 
 							{/* Suggested Prompts */}
 							<div className="space-y-2">
-								{suggestedPrompts.map((prompt) => (
+								{SUGGESTED_PROMPTS.map((prompt) => (
 									<Button
 										key={prompt}
 										onClick={() => handlePromptClick(prompt)}
@@ -195,13 +155,6 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 							className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10">
 							<RotateCcw className="h-3 w-3 mr-1" />
 							Retry
-						</Button>
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={dismissError}
-							className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10">
-							<X className="h-3 w-3" />
 						</Button>
 					</div>
 				</div>

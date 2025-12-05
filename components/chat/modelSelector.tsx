@@ -7,94 +7,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MODELS } from "@/lib/constants";
 
-type ModelOption = {
-	value: string;
-	label: string;
-	tagline: string;
-	context: string;
-	inputs: string;
-};
-
-const models: ModelOption[] = [
-	{
-		value: "amazon/nova-2-lite-v1:free",
-		label: "Amazon Nova 2 Lite",
-		tagline: "Fast multimodal reasoning for everyday prompts",
-		context: "1M ctx",
-		inputs: "Text · Image · Video",
-	},
-	{
-		value: "arcee-ai/trinity-mini:free",
-		label: "Arcee Trinity Mini",
-		tagline: "Equilibrium MoE model with strong long-context reasoning",
-		context: "131K ctx",
-		inputs: "Text",
-	},
-	{
-		value: "allenai/olmo-3-32b-think:free",
-		label: "OLMo 3 32B Think",
-		tagline: "Open deep-reasoning model tuned for thoughtful chains",
-		context: "65K ctx",
-		inputs: "Text",
-	},
-	{
-		value: "google/gemini-2.0-flash-exp:free",
-		label: "Gemini 2.0 Flash",
-		tagline: "Google's lightweight multimodal Flash preview",
-		context: "1M ctx",
-		inputs: "Text · Image",
-	},
-	{
-		value: "x-ai/grok-4.1-fast:free",
-		label: "Grok 4.1 Fast",
-		tagline: "xAI's agentic fast model with optional reasoning",
-		context: "2M ctx",
-		inputs: "Text · Image",
-	},
-	{
-		value: "kwaipilot/kat-coder-pro:free",
-		label: "KAT Coder Pro",
-		tagline: "High-accuracy agentic coding model (SWE-Bench 73%)",
-		context: "256K ctx",
-		inputs: "Text",
-	},
-	{
-		value: "alibaba/tongyi-deepresearch-30b-a3b:free",
-		label: "Tongyi DeepResearch",
-		tagline: "Agentic deep-research MoE optimized for browsing",
-		context: "128K ctx",
-		inputs: "Text",
-	},
-	{
-		value: "meituan/longcat-flash-chat:free",
-		label: "LongCat Flash Chat",
-		tagline: "560B MoE conversationalist with tool-use strength",
-		context: "128K ctx",
-		inputs: "Text",
-	},
-	{
-		value: "nvidia/nemotron-nano-9b-v2:free",
-		label: "Nemotron Nano 9B",
-		tagline: "Reasoning-first 9B model emitting optional thoughts",
-		context: "128K ctx",
-		inputs: "Text",
-	},
-	{
-		value: "openai/gpt-oss-20b:free",
-		label: "GPT-OSS 20B",
-		tagline: "Open-weight 21B model compatible with GPT Harmony format",
-		context: "131K ctx",
-		inputs: "Text",
-	},
-	{
-		value: "z-ai/glm-4.5-air:free",
-		label: "GLM 4.5 Air",
-		tagline: "Z.AI's efficient chat model",
-		context: "131K ctx",
-		inputs: "Text",
-	},
-];
 
 interface ModelSelectorProps {
 	value: string;
@@ -104,7 +18,7 @@ interface ModelSelectorProps {
 
 export function ModelSelector({ value, onValueChange, className }: ModelSelectorProps) {
 	const [open, setOpen] = React.useState(false);
-	const selectedModel = models.find((model) => model.value === value);
+	const selectedModel = MODELS.find((model) => model.value === value);
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -126,7 +40,7 @@ export function ModelSelector({ value, onValueChange, className }: ModelSelector
 					<CommandList className="max-h-[300px]">
 						<CommandEmpty>No model found.</CommandEmpty>
 						<CommandGroup>
-							{models.map((model) => (
+							{MODELS.map((model) => (
 								<CommandItem
 									key={model.value}
 									value={model.value}

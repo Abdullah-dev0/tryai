@@ -2,6 +2,7 @@ import { getConversation } from "@/app/actions/actions";
 import { turso } from "@/lib/db";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { generateId } from "ai";
 
 export const maxDuration = 30;
 
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
 
 	return result.toUIMessageStreamResponse({
 		originalMessages: messages,
+		generateMessageId: generateId,
 		async onFinish({ messages: finalMessages }) {
 			if (conversationId) {
 				// Get the last two messages (user message and assistant response)
@@ -52,15 +54,15 @@ export async function POST(req: Request) {
 				// Save user message
 				if (userMsg && userMsg.role === "user") {
 					await turso.execute({
-						sql: "INSERT INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
+						sql: "INSERT OR IGNORE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
 						args: [userMsg.id, "user", JSON.stringify(userMsg.parts), Date.now(), conversationId],
 					});
 				}
 
-				// Save assistant message
+				// Save assistant message - generate ID if missing
 				if (assistantMsg && assistantMsg.role === "assistant") {
 					await turso.execute({
-						sql: "INSERT INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
+						sql: "INSERT OR REPLACE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
 						args: [assistantMsg.id, "assistant", JSON.stringify(assistantMsg.parts), Date.now(), conversationId],
 					});
 				}

@@ -51,7 +51,6 @@ function MessagePartRenderer({ part, index }: MessagePartRendererProps) {
 		return <Streamdown>{part.text}</Streamdown>;
 	}
 
-	// Reasoning parts (for models like DeepSeek R1, Claude)
 	if (part.type === "reasoning") {
 		return (
 			<details key={index} className="group">

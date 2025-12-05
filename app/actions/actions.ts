@@ -84,7 +84,6 @@ export async function createConversation() {
 
 		// Revalidate conversations list
 		revalidatePath("/");
-		revalidatePath("/chat");
 
 		return {
 			id,
@@ -112,8 +111,6 @@ export async function deleteConversation(id: string) {
 
 		// Revalidate paths
 		revalidatePath("/");
-		revalidatePath("/chat");
-		revalidatePath(`/chat/${id}`);
 	} catch (error) {
 		console.error("Failed to delete conversation:", error);
 	}

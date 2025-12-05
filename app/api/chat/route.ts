@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
 	// Load previous messages from database (already in UIMessage format)
 	const previousConversation = await getConversation(conversationId!);
-	const previousMessages: UIMessage[] = previousConversation?.messages ?? [];
+	const previousMessages: UIMessage[] = previousConversation?.messages.slice(-10) ?? [];
 
 	// Combine previous messages with the new message
 	const messages = [...previousMessages, message];
@@ -42,7 +42,6 @@ export async function POST(req: Request) {
 	result.consumeStream();
 
 	return result.toUIMessageStreamResponse({
-		sendReasoning: true,
 		originalMessages: messages,
 		async onFinish({ messages: finalMessages }) {
 			if (conversationId) {

@@ -37,33 +37,32 @@ export async function POST(req: Request) {
 		onError(error) {
 			console.error("Stream error:", error);
 		},
-	});
-
-	// Consume the stream to ensure it runs to completion even if client disconnects
-	result.consumeStream();
-
-	return result.toUIMessageStreamResponse({
-		originalMessages: messages,
-		generateMessageId: generateId,
-		async onFinish({ messages: finalMessages }) {
+		async onFinish({ text }) {
 			if (conversationId) {
-				// Get the last two messages (user message and assistant response)
-				const userMsg = finalMessages[finalMessages.length - 2];
-				const assistantMsg = finalMessages[finalMessages.length - 1];
-
 				// Save user message
-				if (userMsg && userMsg.role === "user") {
+				if (message && message.role === "user") {
 					await turso.execute({
 						sql: "INSERT OR IGNORE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-						args: [userMsg.id, "user", JSON.stringify(userMsg.parts), Date.now(), conversationId],
+						args: [message.id, "user", JSON.stringify(message.parts), Date.now(), conversationId],
 					});
 				}
 
 				// Save assistant message - generate ID if missing
-				if (assistantMsg && assistantMsg.role === "assistant") {
+				if (text) {
 					await turso.execute({
 						sql: "INSERT OR REPLACE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-						args: [assistantMsg.id, "assistant", JSON.stringify(assistantMsg.parts), Date.now(), conversationId],
+						args: [
+							generateId(),
+							"assistant",
+							JSON.stringify([
+								{
+									type: "text",
+									text,
+								},
+							]),
+							Date.now(),
+							conversationId,
+						],
 					});
 				}
 
@@ -75,4 +74,9 @@ export async function POST(req: Request) {
 			}
 		},
 	});
+
+	// Consume the stream to ensure it runs to completion even if client disconnects
+	result.consumeStream();
+
+	return result.toUIMessageStreamResponse();
 }

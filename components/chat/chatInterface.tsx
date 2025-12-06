@@ -83,12 +83,6 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 		}
 	};
 
-	const handleRetry = () => {
-		if (canRetry && hasMessages) {
-			regenerate();
-		}
-	};
-
 	const handlePromptClick = (prompt: string) => {
 		setInput(prompt);
 		textareaRef.current?.focus();
@@ -148,14 +142,6 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 					<div className="flex items-center gap-3 rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
 						<AlertCircle className="h-4 w-4 shrink-0" />
 						<span className="flex-1">Something went wrong. Please try again.</span>
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={handleRetry}
-							className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10">
-							<RotateCcw className="h-3 w-3 mr-1" />
-							Retry
-						</Button>
 					</div>
 				</div>
 			)}

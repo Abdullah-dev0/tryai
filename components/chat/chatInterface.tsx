@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { ArrowUp, Square, RotateCcw, AlertCircle, Globe } from "lucide-react";
+import { ArrowUp, Square, AlertCircle, Globe, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,7 +41,6 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 	});
 
 	const isLoading = status === "streaming" || status === "submitted";
-	const canRetry = status === "ready" || status === "error";
 	const hasMessages = messages.length > 0;
 
 	// Auto-scroll to bottom when new messages arrive
@@ -138,10 +137,19 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 
 			{/* Error Banner */}
 			{error && (
-				<div className="mx-auto max-w-2xl px-4">
+				<div className="mx-auto max-w-2xl px-4 pb-2">
 					<div className="flex items-center gap-3 rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
 						<AlertCircle className="h-4 w-4 shrink-0" />
 						<span className="flex-1">Something went wrong. Please try again.</span>
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={() => regenerate({ body: { model, conversationId: id } })}
+							className="h-7 gap-1.5 rounded-md px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/20">
+							<RotateCcw className="h-3.5 w-3.5" />
+							Retry
+						</Button>
 					</div>
 				</div>
 			)}
@@ -196,7 +204,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 										className={cn(
 											"h-9 w-9 rounded-full transition-all",
 											input.trim() && !isLoading
-												? "bg-emerald-500 text-white hover:bg-emerald-600"
+												? "bg-primary text-primary-foreground hover:bg-primary/90"
 												: "bg-muted text-muted-foreground",
 										)}
 										title="Send message">

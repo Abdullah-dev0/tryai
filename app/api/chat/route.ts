@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
 	// Load previous messages from database (already in UIMessage format)
 	const previousConversation = await getConversation(conversationId!);
-	const previousMessages: UIMessage[] = previousConversation?.messages.slice(-10) ?? [];
+	const previousMessages: UIMessage[] = previousConversation?.messages.slice(-3) ?? [];
 
 	// Combine previous messages with the new message
 	const messages = [...previousMessages, message];
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 		onError(error) {
 			console.error("Stream error:", error);
 		},
-		async onFinish({ text }) {
+		async onFinish({ text, reasoningText }) {
 			if (conversationId) {
 				// Save user message
 				if (message && message.role === "user") {
@@ -49,20 +49,26 @@ export async function POST(req: Request) {
 
 				// Save assistant message - generate ID if missing
 				if (text) {
+					// Build parts array in UIMessage format
+					const parts: Array<{ type: string; text: string }> = [];
+
+					// Add reasoning part first if present (matches UIMessage ReasoningUIPart)
+					if (reasoningText) {
+						parts.push({
+							type: "reasoning",
+							text: reasoningText,
+						});
+					}
+
+					// Add text part
+					parts.push({
+						type: "text",
+						text,
+					});
+
 					await turso.execute({
 						sql: "INSERT OR REPLACE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-						args: [
-							generateId(),
-							"assistant",
-							JSON.stringify([
-								{
-									type: "text",
-									text,
-								},
-							]),
-							Date.now(),
-							conversationId,
-						],
+						args: [generateId(), "assistant", JSON.stringify(parts), Date.now(), conversationId],
 					});
 				}
 

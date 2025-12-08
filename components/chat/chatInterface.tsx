@@ -28,8 +28,18 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 		messages: initialMessages,
 		transport: new DefaultChatTransport({
 			api: "/api/chat",
+			// Send only the last message + conversationId for efficiency
 			prepareSendMessagesRequest({ messages, body }) {
-				return { body: { message: messages[messages.length - 1], body, conversationId: id } };
+				const messageId = body?.messageId;
+				return {
+					body: {
+						message: messages[messages.length - 1],
+						messages, // Send full messages array for regeneration context
+						body,
+						conversationId: id,
+						messageId,
+					},
+				};
 			},
 		}),
 		onFinish: () => {
@@ -88,7 +98,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 	};
 
 	const handleRegenerate = (messageId: string) => {
-		regenerate({ messageId, body: { model, conversationId: id } });
+		regenerate({ messageId, body: { model, conversationId: id, messageId } });
 	};
 
 	return (

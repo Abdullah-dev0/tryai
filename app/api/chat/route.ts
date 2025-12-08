@@ -1,4 +1,3 @@
-import { getConversation } from "@/app/actions/actions";
 import { turso } from "@/lib/db";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { convertToModelMessages, generateId, pruneMessages, streamText, type UIMessage } from "ai";
@@ -11,24 +10,23 @@ const openrouter = createOpenRouter({
 
 export async function POST(req: Request) {
 	const {
-		message,
+		messages,
 		body,
-	}: { message: UIMessage; body?: { model?: string; conversationId?: string; messageId?: string } } = await req.json();
-	const model = body?.model;
-	const conversationId = body?.conversationId;
+		conversationId,
+		messageId,
+	}: {
+		messages: UIMessage[];
+		body?: { model?: string };
+		conversationId?: string;
+		messageId?: string;
+	} = await req.json();
 
+	const model = body?.model;
 	const targetModel = model && model.trim().length > 0 ? model : "arcee-ai/trinity-mini:free";
 
-	if (!message || !message.parts || message.parts.length === 0) {
-		return new Response("Invalid message", { status: 400 });
+	if (!messages || messages.length === 0) {
+		return new Response("No messages provided", { status: 400 });
 	}
-
-	// Load previous messages from database (already in UIMessage format)
-	const previousConversation = await getConversation(conversationId!);
-	const previousMessages: UIMessage[] = previousConversation?.messages.slice(-3) ?? [];
-
-	// Combine previous messages with the new message
-	const messages = [...previousMessages, message];
 
 	const modelMessages = convertToModelMessages(messages);
 
@@ -44,43 +42,37 @@ export async function POST(req: Request) {
 		messages: prunedMessages,
 		system:
 			"You are a helpful AI assistant. Answer the user's questions to the best of your ability always being concise and reply on markdown format. If you do not know the answer, just say that you do not know. Do not try to make up an answer.",
+	});
+
+	// Consume the stream to ensure it runs to completion even if client disconnects
+	result.consumeStream();
+
+	return result.toUIMessageStreamResponse({
+		originalMessages: messages,
 		onError(error) {
 			throw error;
 		},
-		async onFinish({ text, reasoningText }) {
+		generateMessageId: () => messageId ?? generateId(),
+		async onFinish({ responseMessage }) {
 			if (conversationId) {
-				// Save user message
-				if (message && message.role === "user") {
+				if (messages[messages.length - 1].role === "user") {
 					await turso.execute({
 						sql: "INSERT OR IGNORE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-						args: [message.id, "user", JSON.stringify(message.parts), Date.now(), conversationId],
+						args: [
+							messages[messages.length - 1].id,
+							"user",
+							JSON.stringify(messages[messages.length - 1].parts),
+							Date.now(),
+							conversationId,
+						],
 					});
 				}
 
-				// Save assistant message - generate ID if missing
-				if (text) {
-					// Build parts array in UIMessage format
-					const parts: UIMessage["parts"] = [];
-
-					// Add reasoning part first if present (matches UIMessage ReasoningUIPart)
-					if (reasoningText) {
-						parts.push({
-							type: "reasoning",
-							text: reasoningText,
-						});
-					}
-
-					// Add text part
-					parts.push({
-						type: "text",
-						text,
-					});
-
-					// Update the assistant message when regenerating by reusing provided messageId
-					const assistantMessageId = body?.messageId ?? generateId();
+				// Save or update assistant message (ID is guaranteed by generateMessageId)
+				if (responseMessage) {
 					await turso.execute({
 						sql: "INSERT OR REPLACE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-						args: [assistantMessageId, "assistant", JSON.stringify(parts), Date.now(), conversationId],
+						args: [responseMessage.id, "assistant", JSON.stringify(responseMessage.parts), Date.now(), conversationId],
 					});
 				}
 
@@ -89,12 +81,22 @@ export async function POST(req: Request) {
 					sql: "UPDATE conversations SET updated_at = ? WHERE id = ?",
 					args: [Date.now(), conversationId],
 				});
+
+				// Delete messages that were removed from the conversation (e.g. after regeneration)
+				const validMessageIds = new Set(messages.map((m) => m.id));
+				if (responseMessage) {
+					validMessageIds.add(responseMessage.id);
+				}
+
+				const idsArray = Array.from(validMessageIds);
+				if (idsArray.length > 0) {
+					const placeholders = idsArray.map(() => "?").join(",");
+					await turso.execute({
+						sql: `DELETE FROM messages WHERE conversation_id = ? AND id NOT IN (${placeholders})`,
+						args: [conversationId, ...idsArray],
+					});
+				}
 			}
 		},
 	});
-
-	// Consume the stream to ensure it runs to completion even if client disconnects
-	result.consumeStream();
-
-	return result.toUIMessageStreamResponse();
 }

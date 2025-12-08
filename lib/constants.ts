@@ -18,10 +18,11 @@ export const QUICK_ACTIONS: QuickAction[] = [
 ];
 
 export const SUGGESTED_PROMPTS: string[] = [
-	"How does AI work?",
-	"Are black holes real?",
-	'How many Rs are in the word "strawberry"?',
-	"What is the meaning of life?",
+	"Explain quantum entanglement and its implications",
+	"How does machine learning differ from traditional programming?",
+	"What are the trade-offs between microservices and monolithic architecture?",
+	"How do you implement dependency injection in TypeScript?",
+	"Explain the event loop in JavaScript and how it handles async operations",
 ];
 
 // ============================================

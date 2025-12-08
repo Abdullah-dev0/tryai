@@ -1,8 +1,7 @@
 import { getConversation } from "@/app/actions/actions";
 import { turso } from "@/lib/db";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
-import { generateId } from "ai";
+import { convertToModelMessages, generateId, pruneMessages, streamText, type UIMessage } from "ai";
 
 export const maxDuration = 30;
 
@@ -29,13 +28,22 @@ export async function POST(req: Request) {
 	// Combine previous messages with the new message
 	const messages = [...previousMessages, message];
 
+	const modelMessages = convertToModelMessages(messages);
+
+	const prunedMessages = pruneMessages({
+		messages: modelMessages,
+		reasoning: "all",
+		toolCalls: "all",
+		emptyMessages: "remove",
+	});
+
 	const result = streamText({
 		model: openrouter(targetModel),
-		messages: convertToModelMessages(messages),
+		messages: prunedMessages,
 		system:
 			"You are a helpful AI assistant. Answer the user's questions to the best of your ability always being concise and reply on markdown format. If you do not know the answer, just say that you do not know. Do not try to make up an answer.",
 		onError(error) {
-			console.error("Stream error:", error);
+			throw error;
 		},
 		async onFinish({ text, reasoningText }) {
 			if (conversationId) {
@@ -50,7 +58,7 @@ export async function POST(req: Request) {
 				// Save assistant message - generate ID if missing
 				if (text) {
 					// Build parts array in UIMessage format
-					const parts: Array<{ type: string; text: string }> = [];
+					const parts: UIMessage["parts"] = [];
 
 					// Add reasoning part first if present (matches UIMessage ReasoningUIPart)
 					if (reasoningText) {

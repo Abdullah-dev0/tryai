@@ -12,8 +12,10 @@ const openrouter = createOpenRouter({
 export async function POST(req: Request) {
 	const {
 		message,
-		body: { model, conversationId } = {},
-	}: { message: UIMessage; body?: { model?: string; conversationId?: string } } = await req.json();
+		body,
+	}: { message: UIMessage; body?: { model?: string; conversationId?: string; messageId?: string } } = await req.json();
+	const model = body?.model;
+	const conversationId = body?.conversationId;
 
 	const targetModel = model && model.trim().length > 0 ? model : "arcee-ai/trinity-mini:free";
 
@@ -74,9 +76,11 @@ export async function POST(req: Request) {
 						text,
 					});
 
+					// Update the assistant message when regenerating by reusing provided messageId
+					const assistantMessageId = body?.messageId ?? generateId();
 					await turso.execute({
 						sql: "INSERT OR REPLACE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-						args: [generateId(), "assistant", JSON.stringify(parts), Date.now(), conversationId],
+						args: [assistantMessageId, "assistant", JSON.stringify(parts), Date.now(), conversationId],
 					});
 				}
 

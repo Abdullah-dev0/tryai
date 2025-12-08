@@ -3,14 +3,16 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { UIMessage } from "ai";
-import { Bot, Brain, Loader2, User } from "lucide-react";
+import { Bot, Brain, Loader2, User, RotateCcw } from "lucide-react";
 import { Streamdown } from "streamdown";
+import { Button } from "../ui/button";
 
 type ChatStatus = "submitted" | "streaming" | "ready" | "error";
 
 interface MessageListProps {
 	messages: UIMessage[];
 	status: ChatStatus;
+	regenerateMessage: (messageId: string) => void;
 }
 
 function EmptyState() {
@@ -40,8 +42,7 @@ function StreamingIndicator() {
 }
 
 interface MessagePartRendererProps {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	part: any;
+	part: UIMessage["parts"][number];
 	index: number;
 }
 
@@ -62,15 +63,15 @@ function MessagePartRenderer({ part, index }: MessagePartRendererProps) {
 			</details>
 		);
 	}
-
-	return null;
 }
 
 interface MessageItemProps {
 	message: UIMessage;
+	status: ChatStatus;
+	regenerateMessage: (messageId: string) => void;
 }
 
-function MessageItem({ message }: MessageItemProps) {
+function MessageItem({ message, status, regenerateMessage }: MessageItemProps) {
 	const isUser = message.role === "user";
 
 	return (
@@ -86,16 +87,31 @@ function MessageItem({ message }: MessageItemProps) {
 					</AvatarFallback>
 				</Avatar>
 			)}
-			<div
-				className={cn(
-					"rounded-2xl max-w-2xl px-4 py-3",
-					isUser ? "bg-primary text-primary-foreground" : "bg-muted/50",
-				)}>
-				<div className="space-y-2 text-sm sm:text-base leading-relaxed">
-					{message.parts?.map((part, index) => (
-						<MessagePartRenderer key={index} part={part} index={index} />
-					))}
+			<div className="flex flex-col gap-2">
+				<div
+					className={cn(
+						"rounded-2xl max-w-2xl px-4 py-3",
+						isUser ? "bg-primary text-primary-foreground" : "bg-muted/50",
+					)}>
+					<div className="space-y-2 text-sm sm:text-base leading-relaxed">
+						{message.parts?.map((part, index) => (
+							<MessagePartRenderer key={index} part={part} index={index} />
+						))}
+					</div>
 				</div>
+				{!isUser && status === "ready" && (
+					<div className="flex gap-2 px-4">
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={() => regenerateMessage(message.id)}
+							className="h-7 gap-1.5 rounded-md px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+							<RotateCcw className="h-3 w-3" />
+							Regenerate
+						</Button>
+					</div>
+				)}
 			</div>
 			{isUser && (
 				<Avatar className="w-8 h-8 mt-1 shrink-0">
@@ -108,7 +124,7 @@ function MessageItem({ message }: MessageItemProps) {
 	);
 }
 
-export function MessageList({ messages, status }: MessageListProps) {
+export function MessageList({ messages, status, regenerateMessage }: MessageListProps) {
 	const isStreaming = status === "streaming" || status === "submitted";
 	const showStreamingIndicator = status === "submitted";
 
@@ -119,7 +135,7 @@ export function MessageList({ messages, status }: MessageListProps) {
 	return (
 		<div className="flex flex-col gap-4 p-4">
 			{messages.map((message) => (
-				<MessageItem key={message.id} message={message} />
+				<MessageItem key={message.id} message={message} status={status} regenerateMessage={regenerateMessage} />
 			))}
 			{showStreamingIndicator && <StreamingIndicator />}
 		</div>

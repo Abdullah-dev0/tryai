@@ -87,13 +87,17 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 		textareaRef.current?.focus();
 	};
 
+	const handleRegenerate = (messageId: string) => {
+		regenerate({ messageId, body: { model, conversationId: id } });
+	};
+
 	return (
 		<div className="flex h-full flex-col bg-background relative">
 			{/* Main Content */}
 			<main className="flex-1 overflow-y-auto">
 				{hasMessages ? (
 					<div className="max-w-4xl mx-auto px-4 py-8">
-						<MessageList messages={messages} status={status} />
+						<MessageList regenerateMessage={handleRegenerate} messages={messages} status={status} />
 						<div ref={messagesEndRef} />
 					</div>
 				) : (

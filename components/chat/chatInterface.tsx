@@ -28,16 +28,12 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 		messages: initialMessages,
 		transport: new DefaultChatTransport({
 			api: "/api/chat",
-			// Send only the last message + conversationId for efficiency
-			prepareSendMessagesRequest({ messages, body }) {
-				const messageId = body?.messageId;
+			prepareSendMessagesRequest({ messages, id, body }) {
 				return {
 					body: {
 						message: messages[messages.length - 1],
-						messages, // Send full messages array for regeneration context
-						body,
 						conversationId: id,
-						messageId,
+						body,
 					},
 				};
 			},
@@ -51,7 +47,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 	});
 
 	const isLoading = status === "streaming" || status === "submitted";
-	const hasMessages = messages.length > 0;
+	const showMessageList = messages.length > 0 || isLoading;
 
 	// Auto-scroll to bottom when new messages arrive
 	React.useEffect(() => {
@@ -105,7 +101,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 		<div className="flex h-full flex-col bg-background relative">
 			{/* Main Content */}
 			<main className="flex-1 overflow-y-auto">
-				{hasMessages ? (
+				{showMessageList ? (
 					<div className="max-w-4xl mx-auto px-4 py-8">
 						<MessageList regenerateMessage={handleRegenerate} messages={messages} status={status} />
 						<div ref={messagesEndRef} />

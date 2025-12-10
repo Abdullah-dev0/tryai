@@ -47,7 +47,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 	});
 
 	const isLoading = status === "streaming" || status === "submitted";
-	const showMessageList = messages.length > 0 || isLoading;
+	const showMessageList = messages.length > 0;
 
 	// Auto-scroll to bottom when new messages arrive
 	React.useEffect(() => {

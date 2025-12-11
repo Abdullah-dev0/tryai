@@ -7,10 +7,10 @@ import { ArrowUp, Square, AlertCircle, Globe, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageList } from "@/components/chat/messageList";
 import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/chat/modelSelector";
 import { QUICK_ACTIONS, SUGGESTED_PROMPTS, DEFAULT_MODEL } from "@/lib/constants";
+import { MessageList } from "./messageList";
 
 interface ChatInterfaceProps {
 	id?: string;
@@ -47,7 +47,7 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 	});
 
 	const isLoading = status === "streaming" || status === "submitted";
-	const showMessageList = messages.length > 0;
+	const showMessageList = messages.length > 0 || isLoading;
 
 	// Auto-scroll to bottom when new messages arrive
 	React.useEffect(() => {
@@ -93,17 +93,13 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 		textareaRef.current?.focus();
 	};
 
-	const handleRegenerate = (messageId: string) => {
-		regenerate({ messageId, body: { model, conversationId: id, messageId } });
-	};
-
 	return (
 		<div className="flex h-full flex-col bg-background relative">
 			{/* Main Content */}
 			<main className="flex-1 overflow-y-auto">
 				{showMessageList ? (
 					<div className="max-w-4xl mx-auto px-4 py-8">
-						<MessageList regenerateMessage={handleRegenerate} messages={messages} status={status} />
+						<MessageList messages={messages} status={status} />
 						<div ref={messagesEndRef} />
 					</div>
 				) : (

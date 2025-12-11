@@ -3,26 +3,14 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { UIMessage } from "ai";
-import { Bot, Brain, Loader2, User, RotateCcw } from "lucide-react";
+import { Bot, Brain, Loader2, User } from "lucide-react";
 import { Streamdown } from "streamdown";
-import { Button } from "../ui/button";
 
 type ChatStatus = "submitted" | "streaming" | "ready" | "error";
 
 interface MessageListProps {
 	messages: UIMessage[];
 	status: ChatStatus;
-	regenerateMessage: (messageId: string) => void;
-}
-
-function EmptyState() {
-	return (
-		<div className="flex h-full min-h-[50vh] flex-col items-center justify-center text-center">
-			<div className="mb-4 text-4xl">👋</div>
-			<h2 className="text-lg font-medium">How can I help you today?</h2>
-			<p className="mt-1 text-sm text-muted-foreground">Start a conversation by typing a message below.</p>
-		</div>
-	);
 }
 
 function StreamingIndicator() {
@@ -44,100 +32,78 @@ function StreamingIndicator() {
 interface MessagePartRendererProps {
 	part: UIMessage["parts"][number];
 	index: number;
+	status: ChatStatus;
 }
 
 function MessagePartRenderer({ part, index }: MessagePartRendererProps) {
-	// Text parts
-	if (part.type === "text") {
-		return <Streamdown>{part.text}</Streamdown>;
-	}
-
-	if (part.type === "reasoning") {
-		return (
-			<details key={index} className="group">
-				<summary className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors mb-2">
-					<Brain className="h-3 w-3" />
-					<span>View reasoning</span>
-				</summary>
-				<pre className="text-xs bg-muted/50 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap">{part.text}</pre>
-			</details>
-		);
+	switch (part.type) {
+		case "reasoning":
+			return (
+				<details key={index} className="group">
+					<summary className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors mb-2">
+						<Brain className="h-3 w-3" />
+						<span>View reasoning</span>
+					</summary>
+					<pre className="text-xs bg-muted/50 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap">{part.text}</pre>
+				</details>
+			);
+		case "text":
+			return <Streamdown>{part.text}</Streamdown>;
+		default:
+			return null;
 	}
 }
 
-interface MessageItemProps {
-	message: UIMessage;
-	status: ChatStatus;
-	regenerateMessage: (messageId: string) => void;
-}
+export function MessageList({ messages, status }: MessageListProps) {
+	const lastMessage = messages.at(-1);
+	const isLastMessageEmpty = lastMessage?.role === "assistant" && !lastMessage.parts?.length;
 
-function MessageItem({ message, status, regenerateMessage }: MessageItemProps) {
-	const isUser = message.role === "user";
-
-	return (
-		<div
-			className={cn(
-				"flex gap-4 transition-all duration-300 animate-in fade-in-0 slide-in-from-bottom-2",
-				isUser ? "justify-end" : "justify-start",
-			)}>
-			{!isUser && (
-				<Avatar className="w-8 h-8 mt-1 shrink-0">
-					<AvatarFallback className="bg-primary/10">
-						<Bot size={16} className="text-primary" />
-					</AvatarFallback>
-				</Avatar>
-			)}
-			<div className="flex flex-col gap-2">
-				<div
-					className={cn(
-						"rounded-2xl max-w-2xl px-4 py-3",
-						isUser ? "bg-primary text-primary-foreground" : "bg-muted/50",
-					)}>
-					<div className="space-y-2 text-sm sm:text-base leading-relaxed">
-						{message.parts?.map((part, index) => (
-							<MessagePartRenderer key={index} part={part} index={index} />
-						))}
-					</div>
-				</div>
-				{!isUser && status === "ready" && (
-					<div className="flex gap-2 px-4">
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={() => regenerateMessage(message.id)}
-							className="h-7 gap-1.5 rounded-md px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-							<RotateCcw className="h-3 w-3" />
-							Regenerate
-						</Button>
-					</div>
-				)}
-			</div>
-			{isUser && (
-				<Avatar className="w-8 h-8 mt-1 shrink-0">
-					<AvatarFallback className="bg-primary text-primary-foreground">
-						<User size={16} />
-					</AvatarFallback>
-				</Avatar>
-			)}
-		</div>
-	);
-}
-
-export function MessageList({ messages, status, regenerateMessage }: MessageListProps) {
-	const isStreaming = status === "streaming" || status === "submitted";
-	const showStreamingIndicator = status === "submitted";
-
-	if (!messages.length && !isStreaming) {
-		return <EmptyState />;
-	}
+	const displayMessages = isLastMessageEmpty ? messages.slice(0, -1) : messages;
+	const showLoading = status === "submitted" || (status === "streaming" && isLastMessageEmpty);
 
 	return (
 		<div className="flex flex-col gap-4 p-4">
-			{messages.map((message) => (
-				<MessageItem key={message.id} message={message} status={status} regenerateMessage={regenerateMessage} />
-			))}
-			{showStreamingIndicator && <StreamingIndicator />}
+			{displayMessages.map((message) => {
+				const isUser = message.role === "user";
+
+				return (
+					<div
+						key={message.id}
+						className={cn(
+							"flex gap-4 transition-all duration-300 animate-in fade-in-0 slide-in-from-bottom-2",
+							isUser ? "justify-end" : "justify-start",
+						)}>
+						{!isUser && (
+							<Avatar className="w-8 h-8 mt-1 shrink-0">
+								<AvatarFallback className="bg-primary/10">
+									<Bot size={16} className="text-primary" />
+								</AvatarFallback>
+							</Avatar>
+						)}
+						<div className="flex flex-col gap-2">
+							<div
+								className={cn(
+									"rounded-2xl max-w-2xl px-4 py-3",
+									isUser ? "bg-primary text-primary-foreground" : "bg-muted/50",
+								)}>
+								<div className="space-y-2 text-sm sm:text-base leading-relaxed">
+									{message.parts?.map((part, index) => (
+										<MessagePartRenderer key={index} part={part} index={index} status={status} />
+									))}
+								</div>
+							</div>
+						</div>
+						{isUser && (
+							<Avatar className="w-8 h-8 mt-1 shrink-0">
+								<AvatarFallback className="bg-primary text-primary-foreground">
+									<User size={16} />
+								</AvatarFallback>
+							</Avatar>
+						)}
+					</div>
+				);
+			})}
+			{showLoading && <StreamingIndicator />}
 		</div>
 	);
 }

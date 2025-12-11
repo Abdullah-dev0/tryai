@@ -1,25 +1,11 @@
 import { turso } from "@/lib/db";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import {
-	convertToModelMessages,
-	createIdGenerator,
-	pruneMessages,
-	streamText,
-	TypeValidationError,
-	type UIMessage,
-	validateUIMessages,
-} from "ai";
+import { convertToModelMessages, createIdGenerator, generateId, pruneMessages, streamText, type UIMessage } from "ai";
 
 export const maxDuration = 30;
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY!,
-});
-
-// Create a consistent message ID generator for server-side persistence
-const generateMessageId = createIdGenerator({
-	prefix: "msg",
-	size: 16,
 });
 
 // Helper to load chat messages from database (following docs pattern)
@@ -38,16 +24,10 @@ async function loadChat(id: string): Promise<UIMessage[]> {
 
 // Helper to save all chat messages to database (following docs pattern)
 async function saveChat({ chatId, messages }: { chatId: string; messages: UIMessage[] }): Promise<void> {
-	// Delete existing messages for this conversation
-	await turso.execute({
-		sql: "DELETE FROM messages WHERE conversation_id = ?",
-		args: [chatId],
-	});
-
-	// Insert all messages
+	// Insert or update messages (handles duplicates)
 	for (const msg of messages) {
 		await turso.execute({
-			sql: "INSERT INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
+			sql: "INSERT OR REPLACE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
 			args: [msg.id, msg.role, JSON.stringify(msg.parts), Date.now(), chatId],
 		});
 	}
@@ -100,10 +80,11 @@ export async function POST(req: Request) {
 
 	return result.toUIMessageStreamResponse({
 		originalMessages: [...previousMessages.slice(0, -3), message],
+		generateMessageId: generateId,
+
 		onError(error) {
 			throw error;
 		},
-		generateMessageId,
 		async onFinish({ messages }) {
 			await saveChat({ chatId: conversationId, messages });
 		},

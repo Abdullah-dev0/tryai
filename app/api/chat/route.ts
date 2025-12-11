@@ -80,25 +80,7 @@ export async function POST(req: Request) {
 	// Load previous messages from database
 	const previousMessages = await loadChat(conversationId);
 
-	// Validate messages - handles tools, metadata, and data parts if present
-	let validatedMessages: UIMessage[];
-	try {
-		validatedMessages = await validateUIMessages({
-			// Append the new message to the previous messages
-			messages: [...previousMessages, message],
-		});
-	} catch (error) {
-		if (error instanceof TypeValidationError) {
-			// Log validation error for monitoring
-			console.error("Message validation failed:", error);
-			// Fall back to just the new message if history is corrupted
-			validatedMessages = [message];
-		} else {
-			throw error;
-		}
-	}
-
-	const modelMessages = convertToModelMessages(validatedMessages);
+	const modelMessages = convertToModelMessages([...previousMessages.slice(0, -3), message]);
 
 	const prunedMessages = pruneMessages({
 		messages: modelMessages,
@@ -117,14 +99,12 @@ export async function POST(req: Request) {
 	result.consumeStream();
 
 	return result.toUIMessageStreamResponse({
-		originalMessages: validatedMessages,
+		originalMessages: [...previousMessages.slice(0, -3), message],
 		onError(error) {
 			throw error;
 		},
-		// Generate consistent server-side IDs for persistence
 		generateMessageId,
 		async onFinish({ messages }) {
-			// Save ALL messages (following the docs pattern)
 			await saveChat({ chatId: conversationId, messages });
 		},
 	});

@@ -1,6 +1,6 @@
 import { turso } from "@/lib/db";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { convertToModelMessages, createIdGenerator, generateId, pruneMessages, streamText, type UIMessage } from "ai";
+import { consumeStream, convertToModelMessages, generateId, pruneMessages, streamText, type UIMessage } from "ai";
 
 export const maxDuration = 30;
 
@@ -76,16 +76,20 @@ export async function POST(req: Request) {
 			"You are a helpful AI assistant. Answer the user's questions to the best of your ability always being concise and reply on markdown format. If you do not know the answer, just say that you do not know. Do not try to make up an answer.",
 	});
 
-	result.consumeStream();
+	// Track if an error occurs during streaming
+	let hasError = false;
 
 	return result.toUIMessageStreamResponse({
 		originalMessages: [...previousMessages.slice(0, -3), message],
 		generateMessageId: generateId,
-
+		consumeSseStream: consumeStream,
 		onError(error) {
-			throw error;
+			console.error("Streaming error:", error);
+			hasError = true;
+			return error instanceof Error ? error.message : String(error);
 		},
 		async onFinish({ messages }) {
+			if (hasError) return;
 			await saveChat({ chatId: conversationId, messages });
 		},
 	});

@@ -24,11 +24,24 @@ async function loadChat(id: string): Promise<UIMessage[]> {
 
 // Helper to save all chat messages to database (following docs pattern)
 async function saveChat({ chatId, messages }: { chatId: string; messages: UIMessage[] }): Promise<void> {
-	// Insert or update messages (handles duplicates)
-	for (const msg of messages) {
+	// Only save the last 2 messages (user message + AI response)
+	// Previous messages are already persisted in the database
+	const userMessage = messages.at(-2); // Second to last = user message
+	const aiMessage = messages.at(-1); // Last = AI response
+
+	const messagesToSave = [userMessage, aiMessage].filter(Boolean) as UIMessage[];
+
+	const baseTime = Date.now();
+	for (const msg of messagesToSave) {
+		// Ensure deterministic order by adding index to baseTime
+		// This guarantees that later messages always have a later timestamp
+		// regardless of how fast the code executes
+		const orderOffset = messagesToSave.indexOf(msg);
+		const timestamp = baseTime + orderOffset;
+
 		await turso.execute({
 			sql: "INSERT OR REPLACE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-			args: [msg.id, msg.role, JSON.stringify(msg.parts), Date.now(), chatId],
+			args: [msg.id, msg.role, JSON.stringify(msg.parts), timestamp, chatId],
 		});
 	}
 
@@ -73,7 +86,7 @@ export async function POST(req: Request) {
 		model: openrouter(targetModel),
 		messages: prunedMessages,
 		system:
-			"You are a helpful AI assistant. Answer the user's questions to the best of your ability always being concise and reply on markdown format. If you do not know the answer, just say that you do not know. Do not try to make up an answer.",
+			"You are a highly knowledgeable and friendly AI assistant. Your primary goal is to provide accurate and concise answers to user queries, always formatting your responses using Markdown for readability. If a question is beyond your current knowledge, simply state that you don't know rather than fabricating information.",
 	});
 
 	// Track if an error occurs during streaming

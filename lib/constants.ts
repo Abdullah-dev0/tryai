@@ -39,7 +39,9 @@ export type ModelBrand =
 	| "deepseek"
 	| "thudm"
 	| "sarvam"
-	| "zhipu";
+	| "zhipu"
+	| "amazon"
+	| "kwaipilot";
 
 export interface ModelOption {
 	value: string;
@@ -63,6 +65,8 @@ export const BRAND_COLORS: Record<ModelBrand, string> = {
 	thudm: "#FF6B35",
 	sarvam: "#FF5722",
 	zhipu: "#00D4AA",
+	amazon: "#FF9900",
+	kwaipilot: "#FF3366",
 };
 
 export const MODELS: ModelOption[] = [
@@ -161,81 +165,6 @@ export const MODELS: ModelOption[] = [
 		brand: "mistral",
 		isReasoning: false,
 	},
-	// More Qwen Models
-	{
-		value: "qwen/qwen3-8b:free",
-		label: "Qwen 3 8B",
-		tagline: "Basic free Qwen model",
-		context: "40K ctx",
-		inputs: "Text",
-		brand: "qwen",
-		isReasoning: true,
-	},
-	{
-		value: "qwen/qwen3-14b:free",
-		label: "Qwen 3 14B",
-		tagline: "Mid-range free Qwen model",
-		context: "40K ctx",
-		inputs: "Text",
-		brand: "qwen",
-		isReasoning: true,
-	},
-	{
-		value: "qwen/qwen3-30b-a3b:free",
-		label: "Qwen 3 30B A3B",
-		tagline: "Larger free Qwen model",
-		context: "40K ctx",
-		inputs: "Text",
-		brand: "qwen",
-		isReasoning: true,
-	},
-	{
-		value: "qwen/qwen3-32b:free",
-		label: "Qwen 3 32B",
-		tagline: "High-capacity free Qwen model",
-		context: "40K ctx",
-		inputs: "Text",
-		brand: "qwen",
-		isReasoning: true,
-	},
-	{
-		value: "qwen/qwen3-coder:free",
-		label: "Qwen 3 Coder (480B)",
-		tagline: "Free coding-optimized model",
-		context: "262K ctx",
-		inputs: "Text",
-		brand: "qwen",
-		isReasoning: true,
-	},
-	// GLM Models
-	{
-		value: "thudm/glm-z1-32b:free",
-		label: "GLM Z1 32B",
-		tagline: "Large GLM-family free model",
-		context: "32K ctx",
-		inputs: "Text",
-		brand: "thudm",
-		isReasoning: true,
-	},
-	{
-		value: "zhipu-ai/glm-4-air:free",
-		label: "GLM 4 Air",
-		tagline: "Zhipu free model",
-		context: "128K ctx",
-		inputs: "Text",
-		brand: "zhipu",
-		isReasoning: false,
-	},
-	// Microsoft Models
-	{
-		value: "microsoft/mai-ds-r1:free",
-		label: "Microsoft MAI DS R1",
-		tagline: "Microsoft free reasoning model",
-		context: "163K ctx",
-		inputs: "Text",
-		brand: "microsoft",
-		isReasoning: true,
-	},
 	// DeepSeek Models
 	{
 		value: "tngtech/deepseek-r1t2-chimera:free",
@@ -246,25 +175,36 @@ export const MODELS: ModelOption[] = [
 		brand: "deepseek",
 		isReasoning: true,
 	},
-	// Sarvam Models
+	// Zhipu Models
 	{
-		value: "sarvamai/sarvam-m:free",
-		label: "Sarvam M",
-		tagline: "Smaller free model",
-		context: "32K ctx",
+		value: "zhipu-ai/glm-4-air:free",
+		label: "GLM 4 Air",
+		tagline: "Zhipu free model",
+		context: "128K ctx",
 		inputs: "Text",
-		brand: "sarvam",
+		brand: "zhipu",
 		isReasoning: false,
 	},
-	// More Google Models
+
+	// Amazon Models
 	{
-		value: "google/gemma-2-9b-it:free",
-		label: "Gemma 2 9B IT",
-		tagline: "Google free open model",
-		context: "8K ctx",
+		value: "amazon/nova-2-lite-v1:free",
+		label: "Nova 2 Lite",
+		tagline: "Fast, cost-effective reasoning model for text, images, and videos.",
+		context: "1M ctx",
+		inputs: "Text, Vision, Video",
+		brand: "amazon",
+		isReasoning: true,
+	},
+	// Kwaipilot Models
+	{
+		value: "kwaipilot/kat-coder-pro:free",
+		label: "Kwaipilot KAT-Coder-Pro V1",
+		tagline: "Advanced agentic coding model",
+		context: "256K ctx",
 		inputs: "Text",
-		brand: "google",
-		isReasoning: false,
+		brand: "kwaipilot",
+		isReasoning: true,
 	},
 ];
 

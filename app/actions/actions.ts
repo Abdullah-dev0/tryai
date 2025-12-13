@@ -1,7 +1,8 @@
 "use server";
 
-import { generateId, turso } from "@/lib/db";
+import { turso } from "@/lib/db";
 import type { Row } from "@libsql/client";
+import { generateId } from "ai";
 import { revalidatePath } from "next/cache";
 
 export async function getConversations() {

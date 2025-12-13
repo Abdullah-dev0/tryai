@@ -1,6 +1,7 @@
 import { turso } from "@/lib/db";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { consumeStream, convertToModelMessages, generateId, pruneMessages, streamText, type UIMessage } from "ai";
+import { consumeStream, convertToModelMessages, generateId, pruneMessages, streamText } from "ai";
+import type { ChatMessage } from "@/lib/types";
 
 export const maxDuration = 30;
 
@@ -9,7 +10,7 @@ const openrouter = createOpenRouter({
 });
 
 // Helper to load chat messages from database (following docs pattern)
-async function loadChat(id: string): Promise<UIMessage[]> {
+async function loadChat(id: string): Promise<ChatMessage[]> {
 	const result = await turso.execute({
 		sql: "SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC",
 		args: [id],
@@ -23,13 +24,13 @@ async function loadChat(id: string): Promise<UIMessage[]> {
 }
 
 // Helper to save all chat messages to database (following docs pattern)
-async function saveChat({ chatId, messages }: { chatId: string; messages: UIMessage[] }): Promise<void> {
+async function saveChat({ chatId, messages }: { chatId: string; messages: ChatMessage[] }) {
 	// Only save the last 2 messages (user message + AI response)
 	// Previous messages are already persisted in the database
 	const userMessage = messages.at(-2); // Second to last = user message
 	const aiMessage = messages.at(-1); // Last = AI response
 
-	const messagesToSave = [userMessage, aiMessage].filter(Boolean) as UIMessage[];
+	const messagesToSave = [userMessage, aiMessage].filter(Boolean) as ChatMessage[];
 
 	const baseTime = Date.now();
 	for (const msg of messagesToSave) {
@@ -45,16 +46,16 @@ async function saveChat({ chatId, messages }: { chatId: string; messages: UIMess
 		});
 	}
 
-	// Update conversation timestamp
+	// Update conversation timestamp and add tokens
 	await turso.execute({
-		sql: "UPDATE conversations SET updated_at = ? WHERE id = ?",
-		args: [Date.now(), chatId],
+		sql: "UPDATE conversations SET updated_at = ?, total_tokens = COALESCE(total_tokens, 0) + ? WHERE id = ?",
+		args: [Date.now(), messages.at(-1)?.metadata?.tokens ?? 0, chatId],
 	});
 }
 
 export async function POST(req: Request) {
 	const { message, body } = (await req.json()) as {
-		message: UIMessage;
+		message: ChatMessage;
 		body?: { model?: string; conversationId?: string };
 	};
 	const model = body?.model;
@@ -67,13 +68,16 @@ export async function POST(req: Request) {
 	}
 
 	if (!conversationId) {
-		return new Response("No conversation ID provided", { status: 400 });
+		return new Response("No conversation ID provided what", { status: 400 });
 	}
 
 	// Load previous messages from database
 	const previousMessages = await loadChat(conversationId);
 
-	const modelMessages = convertToModelMessages([...previousMessages.slice(0, -3), message]);
+	// Combine messages with proper typing for originalMessages
+	const allMessages: ChatMessage[] = [...previousMessages.slice(0, -3), message];
+
+	const modelMessages = convertToModelMessages(allMessages);
 
 	const prunedMessages = pruneMessages({
 		messages: modelMessages,
@@ -93,13 +97,20 @@ export async function POST(req: Request) {
 	let hasError = false;
 
 	return result.toUIMessageStreamResponse({
-		originalMessages: [...previousMessages.slice(0, -3), message],
+		originalMessages: allMessages,
 		generateMessageId: generateId,
 		consumeSseStream: consumeStream,
 		onError(error) {
 			console.error("Streaming error:", error);
 			hasError = true;
 			return error instanceof Error ? error.message : String(error);
+		},
+		messageMetadata: ({ part }) => {
+			if (part.type === "finish") {
+				return {
+					tokens: part.totalUsage.totalTokens ?? 0,
+				};
+			}
 		},
 		async onFinish({ messages }) {
 			if (hasError) return;

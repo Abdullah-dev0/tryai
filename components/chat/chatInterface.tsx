@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
-import { ArrowUp, Square, AlertCircle, Globe, RotateCcw } from "lucide-react";
+import { DefaultChatTransport } from "ai";
+import type { ChatMessage } from "@/lib/types";
+import { ArrowUp, Square, AlertCircle, Globe, RotateCcw, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,10 +15,11 @@ import { MessageList } from "./messageList";
 
 interface ChatInterfaceProps {
 	id?: string;
-	initialMessages?: UIMessage[];
+	initialMessages?: ChatMessage[];
+	totalTokens?: number;
 }
 
-export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) {
+export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: ChatInterfaceProps) {
 	const [model, setModel] = React.useState(DEFAULT_MODEL);
 	const [input, setInput] = React.useState("");
 	const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -47,7 +49,15 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 	});
 
 	const isLoading = status === "streaming" || status === "submitted";
-	const showMessageList = messages.length > 0 || isLoading;
+	const showMessageList = messages.length > 0;
+
+	// Calculate tokens from current streaming session
+	const sessionTokens = React.useMemo(() => {
+		return messages.reduce((sum, message) => {
+			const count = message.metadata?.tokens || 0;
+			return sum + count;
+		}, 0);
+	}, [messages]);
 
 	// Auto-scroll to bottom when new messages arrive
 	React.useEffect(() => {
@@ -189,6 +199,12 @@ export function ChatInterface({ id, initialMessages = [] }: ChatInterfaceProps) 
 									<Globe className="h-3.5 w-3.5" />
 									Search
 								</Button>
+								{totalTokens + sessionTokens > 0 && (
+									<span className="flex items-center gap-1 text-xs text-muted-foreground px-2">
+										<Zap className="h-3 w-3" />
+										{(totalTokens + sessionTokens).toLocaleString()} tokens
+									</span>
+								)}
 							</div>
 
 							<div className="flex items-center gap-1">

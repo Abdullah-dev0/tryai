@@ -3,15 +3,11 @@
 import { use } from "react";
 import { notFound } from "next/navigation";
 import { ChatInterface } from "./chatInterface";
-import type { UIMessage } from "ai";
-
-interface Conversation {
-	messages: UIMessage[];
-}
+import type { ChatMessage } from "@/lib/types";
 
 interface ChatContentProps {
 	id: string;
-	conversationPromise: Promise<Conversation | null>;
+	conversationPromise: Promise<{ messages: ChatMessage[]; totalTokens: number } | null>;
 }
 
 export function ChatContent({ id, conversationPromise }: ChatContentProps) {
@@ -23,5 +19,5 @@ export function ChatContent({ id, conversationPromise }: ChatContentProps) {
 	}
 
 	// Messages are already in UIMessage format from the database
-	return <ChatInterface id={id} initialMessages={conversation.messages} />;
+	return <ChatInterface id={id} initialMessages={conversation.messages} totalTokens={conversation.totalTokens} />;
 }

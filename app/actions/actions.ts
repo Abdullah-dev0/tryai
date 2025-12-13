@@ -3,6 +3,7 @@
 import { turso, generateId } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import type { Row } from "@libsql/client";
+import type { ChatMessage } from "@/lib/types";
 
 export async function getConversations() {
 	try {
@@ -46,7 +47,7 @@ export async function getConversations() {
 export const getConversation = async (id: string) => {
 	try {
 		const convResult = await turso.execute({
-			sql: "SELECT * FROM conversations WHERE id = ?",
+			sql: "SELECT id, created_at, updated_at, total_tokens FROM conversations WHERE id = ?",
 			args: [id],
 		});
 
@@ -65,6 +66,7 @@ export const getConversation = async (id: string) => {
 				parts: JSON.parse(m.parts as string),
 				createdAt: new Date(m.created_at as number),
 			})),
+			totalTokens: (convResult.rows[0].total_tokens as number) ?? 0,
 		};
 	} catch (error) {
 		console.error("Failed to fetch conversation:", error);

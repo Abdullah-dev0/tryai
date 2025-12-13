@@ -23,6 +23,8 @@ function BrandIcon({ brand }: { brand: ModelBrand }) {
 		thudm: "T",
 		sarvam: "S",
 		zhipu: "Z",
+		amazon: "A",
+		kwaipilot: "K",
 	};
 
 	return (

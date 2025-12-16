@@ -25,6 +25,7 @@ function BrandIcon({ brand }: { brand: ModelBrand }) {
 		zhipu: "Z",
 		amazon: "A",
 		kwaipilot: "K",
+		nvidia: "N",
 	};
 
 	return (

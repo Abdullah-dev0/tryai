@@ -41,7 +41,8 @@ export type ModelBrand =
 	| "sarvam"
 	| "zhipu"
 	| "amazon"
-	| "kwaipilot";
+	| "kwaipilot"
+	| "nvidia";
 
 export interface ModelOption {
 	value: string;
@@ -67,6 +68,7 @@ export const BRAND_COLORS: Record<ModelBrand, string> = {
 	zhipu: "#00D4AA",
 	amazon: "#FF9900",
 	kwaipilot: "#FF3366",
+	nvidia: "#FF3366",
 };
 
 export const MODELS: ModelOption[] = [
@@ -137,34 +139,6 @@ export const MODELS: ModelOption[] = [
 		brand: "openai",
 		isReasoning: true,
 	},
-	// Mistral Models
-	{
-		value: "mistralai/mistral-7b-instruct:free",
-		label: "Mistral 7B Instruct",
-		tagline: "Fast and efficient open model",
-		context: "32K ctx",
-		inputs: "Text",
-		brand: "mistral",
-		isReasoning: false,
-	},
-	{
-		value: "mistralai/mistral-nemo:free",
-		label: "Mistral Nemo",
-		tagline: "Balanced free model",
-		context: "131K ctx",
-		inputs: "Text",
-		brand: "mistral",
-		isReasoning: false,
-	},
-	{
-		value: "mistralai/mistral-small-3.2-24b-instruct:free",
-		label: "Mistral Small 3.2 24B",
-		tagline: "Free large context model",
-		context: "96K ctx",
-		inputs: "Text",
-		brand: "mistral",
-		isReasoning: false,
-	},
 	// DeepSeek Models
 	{
 		value: "tngtech/deepseek-r1t2-chimera:free",
@@ -196,7 +170,6 @@ export const MODELS: ModelOption[] = [
 		brand: "amazon",
 		isReasoning: true,
 	},
-	// Kwaipilot Models
 	{
 		value: "kwaipilot/kat-coder-pro:free",
 		label: "Kwaipilot KAT-Coder-Pro V1",
@@ -204,6 +177,16 @@ export const MODELS: ModelOption[] = [
 		context: "256K ctx",
 		inputs: "Text",
 		brand: "kwaipilot",
+		isReasoning: true,
+	},
+	// NVIDIA Models
+	{
+		value: "nvidia/nemotron-3-nano-30b-a3b:free",
+		label: "NVIDIA Nemotron 3 Nano 30B A3B",
+		tagline: "Small language MoE model for specialized agentic AI systems.",
+		context: "256K ctx",
+		inputs: "Text",
+		brand: "nvidia",
 		isReasoning: true,
 	},
 ];

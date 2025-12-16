@@ -3,6 +3,8 @@ import { User } from "lucide-react";
 
 import { getConversations } from "@/app/actions/actions";
 import { SidebarContent } from "./sidebarContent";
+import { Suspense } from "react";
+import { SidebarSkeleton } from "../loading/sidebarSkeleton";
 
 export async function Sidebar() {
 	const conversations = getConversations();
@@ -16,8 +18,9 @@ export async function Sidebar() {
 				</Link>
 			</div>
 
-			{/* Interactive Content - Client Component */}
-			<SidebarContent conversations={conversations} />
+			<Suspense fallback={<SidebarSkeleton />}>
+				<SidebarContent conversations={conversations} />
+			</Suspense>
 
 			{/* User Profile - Static, server rendered */}
 			<div className="border-t p-3">

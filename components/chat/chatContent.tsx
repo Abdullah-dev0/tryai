@@ -1,23 +1,17 @@
-"use client";
-
-import { use } from "react";
 import { notFound } from "next/navigation";
+import { getConversation } from "@/app/actions/actions";
 import { ChatInterface } from "./chatInterface";
-import type { ChatMessage } from "@/lib/types";
 
 interface ChatContentProps {
 	id: string;
-	conversationPromise: Promise<{ messages: ChatMessage[]; totalTokens: number } | null>;
 }
 
-export function ChatContent({ id, conversationPromise }: ChatContentProps) {
-	const conversation = use(conversationPromise);
+export async function ChatContent({ id }: ChatContentProps) {
+	const conversation = await getConversation(id);
 
-	// Handle not found case
 	if (!conversation) {
 		notFound();
 	}
 
-	// Messages are already in UIMessage format from the database
 	return <ChatInterface id={id} initialMessages={conversation.messages} totalTokens={conversation.totalTokens} />;
 }

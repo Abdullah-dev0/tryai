@@ -22,6 +22,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: ChatInterfaceProps) {
 	const [model, setModel] = React.useState(DEFAULT_MODEL);
 	const [input, setInput] = React.useState("");
+	const [sessionTokens, setSessionTokens] = React.useState(totalTokens);
 	const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -40,7 +41,9 @@ export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: Cha
 				};
 			},
 		}),
-		onFinish: () => {
+		onFinish: ({ message }) => {
+			const tokens = message.metadata?.tokens ?? 0;
+			setSessionTokens((prev) => prev + tokens);
 			textareaRef.current?.focus();
 		},
 		onError: (err) => {
@@ -50,14 +53,6 @@ export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: Cha
 
 	const isLoading = status === "streaming" || status === "submitted";
 	const showMessageList = messages.length > 0;
-
-	// Calculate tokens from current streaming session
-	const sessionTokens = React.useMemo(() => {
-		return messages.reduce((sum, message) => {
-			const count = message.metadata?.tokens || 0;
-			return sum + count;
-		}, 0);
-	}, [messages]);
 
 	// Auto-scroll to bottom when new messages arrive
 	React.useEffect(() => {
@@ -199,10 +194,10 @@ export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: Cha
 									<Globe className="h-3.5 w-3.5" />
 									Search
 								</Button>
-								{totalTokens + sessionTokens > 0 && (
+								{sessionTokens > 0 && (
 									<span className="flex items-center gap-1 text-xs text-muted-foreground px-2">
 										<Zap className="h-3 w-3" />
-										{(totalTokens + sessionTokens).toLocaleString()} tokens
+										{sessionTokens.toLocaleString()} tokens
 									</span>
 								)}
 							</div>

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getConversation } from "@/app/actions/actions";
+import { getConversation } from "@/app/actions/conversationActions";
 import { ChatInterface } from "./chatInterface";
 
 interface ChatContentProps {

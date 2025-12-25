@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { User } from "lucide-react";
 
-import { getConversations } from "@/app/actions/actions";
+import { getConversations } from "@/app/actions/conversationActions";
 import { SidebarContent } from "./sidebarContent";
 import { Suspense } from "react";
 import { SidebarSkeleton } from "../loading/sidebarSkeleton";

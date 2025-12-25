@@ -9,7 +9,7 @@ import { cn, groupByDate, stripMarkdown } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { deleteConversation, createConversation } from "@/app/actions/actions";
+import { deleteConversation, createConversation } from "@/app/actions/conversationActions";
 import { Spinner } from "@/components/ui/spinner";
 
 interface Conversation {

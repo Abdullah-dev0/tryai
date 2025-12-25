@@ -5,7 +5,7 @@ import { useTransition } from "react";
 import { Plus, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { createConversation } from "@/app/actions/actions";
+import { createConversation } from "@/app/actions/conversationActions";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function HomePage() {

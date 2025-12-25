@@ -8,7 +8,7 @@ export default async function HomePage() {
 	return (
 		<div className="flex h-full w-full flex-col bg-background">
 			{/* Header */}
-			<header className="flex items-center justify-between border-b px-8 py-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+			<header className="flex items-center justify-between border-b px-8 py-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 sticky top-0 z-10">
 				<div className="flex items-center gap-3">
 					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/20">
 						<Sparkles className="h-5 w-5 text-primary-foreground" />

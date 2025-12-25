@@ -1,23 +1,17 @@
 "use client";
 
+import { MessageSquare, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { MessageSquare, Plus, Trash2, Search } from "lucide-react";
-import { useTransition, useState, useMemo, use } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { use, useMemo, useState, useTransition } from "react";
 
-import { cn, groupByDate, stripMarkdown } from "@/lib/utils";
+import { deleteConversation } from "@/app/actions/conversationActions";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { deleteConversation, createConversation } from "@/app/actions/conversationActions";
-import { Spinner } from "@/components/ui/spinner";
-
-interface Conversation {
-	id: string;
-	createdAt: Date;
-	updatedAt: Date;
-	lastMessage: string | null;
-}
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn, groupByDate, stripMarkdown } from "@/lib/utils";
+import CreateConversationButton from "./createConversationButton";
+import { Conversation } from "@/lib/types";
 
 interface SidebarContentProps {
 	conversations: Promise<Conversation[]>;
@@ -41,15 +35,6 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 
 	const groupedConversations = useMemo(() => groupByDate(filteredConversations), [filteredConversations]);
 
-	const handleNewChat = () => {
-		startTransition(async () => {
-			const conversation = await createConversation();
-			if (conversation) {
-				router.push(`/chat/${conversation.id}`);
-			}
-		});
-	};
-
 	const handleDelete = (e: React.MouseEvent, id: string) => {
 		e.preventDefault();
 		e.stopPropagation();
@@ -66,16 +51,7 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 		<>
 			{/* New Chat Button */}
 			<div className="px-3 pb-2">
-				<Button onClick={handleNewChat} variant={"outline"} className="w-full" disabled={isPending}>
-					{isPending ? (
-						<Spinner className="h-4 w-4" />
-					) : (
-						<>
-							<Plus className="h-4 w-4" />
-							New Chat
-						</>
-					)}
-				</Button>
+				<CreateConversationButton className="w-full" conversations={conversationsData} />
 			</div>
 
 			{/* Search */}

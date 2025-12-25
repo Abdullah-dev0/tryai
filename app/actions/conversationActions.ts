@@ -4,8 +4,10 @@ import { turso } from "@/lib/db";
 import type { Row } from "@libsql/client";
 import { generateId } from "ai";
 import { revalidatePath } from "next/cache";
+import { cache } from "react";
 
-export async function getConversations() {
+export const getConversations = cache(async () => {
+	console.log("Fetching conversations from database...");
 	try {
 		const result = await turso.execute(`
 			SELECT 
@@ -42,7 +44,7 @@ export async function getConversations() {
 		console.error("Failed to fetch conversations:", error);
 		return [];
 	}
-}
+});
 
 export const getConversation = async (id: string) => {
 	try {

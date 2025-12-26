@@ -1,30 +1,36 @@
 "use server";
 
-import { turso } from "@/lib/db";
-import type { Row } from "@libsql/client";
+import { db, conversations, messages } from "@/lib/db";
+import { eq, desc, sql } from "drizzle-orm";
 import { generateId } from "ai";
 import { revalidatePath } from "next/cache";
 import { cache } from "react";
 
 export const getConversations = cache(async () => {
-	console.log("Fetching conversations from database...");
 	try {
-		const result = await turso.execute(`
-			SELECT 
-				c.id,
-				c.created_at,
-				c.updated_at,
-				(SELECT parts FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_parts
-			FROM conversations c
-			ORDER BY c.updated_at DESC
-		`);
+		// Get conversations with their last message
+		const result = await db
+			.select({
+				id: conversations.id,
+				createdAt: conversations.createdAt,
+				updatedAt: conversations.updatedAt,
+				lastParts: sql<string | null>`(
+					SELECT ${messages.parts} 
+					FROM ${messages} 
+					WHERE ${messages.conversationId} = ${conversations.id} 
+					ORDER BY ${messages.createdAt} DESC 
+					LIMIT 1
+				)`,
+			})
+			.from(conversations)
+			.orderBy(desc(conversations.updatedAt));
 
-		return result.rows.map((row) => {
+		return result.map((row) => {
 			// Extract text from parts JSON for preview
 			let lastMessage: string | null = null;
-			if (row.last_parts) {
+			if (row.lastParts) {
 				try {
-					const parts = JSON.parse(row.last_parts as string);
+					const parts = JSON.parse(row.lastParts);
 					lastMessage = parts
 						.filter((p: { type: string }) => p.type === "text")
 						.map((p: { text: string }) => p.text)
@@ -34,9 +40,9 @@ export const getConversations = cache(async () => {
 				}
 			}
 			return {
-				id: row.id as string,
-				createdAt: new Date(row.created_at as number),
-				updatedAt: new Date(row.updated_at as number),
+				id: row.id,
+				createdAt: new Date(row.createdAt),
+				updatedAt: new Date(row.updatedAt),
 				lastMessage,
 			};
 		});
@@ -48,27 +54,33 @@ export const getConversations = cache(async () => {
 
 export const getConversation = async (id: string) => {
 	try {
-		const convResult = await turso.execute({
-			sql: "SELECT id, created_at, updated_at, total_tokens FROM conversations WHERE id = ?",
-			args: [id],
-		});
+		const convResult = await db
+			.select({
+				id: conversations.id,
+				createdAt: conversations.createdAt,
+				updatedAt: conversations.updatedAt,
+				totalTokens: conversations.totalTokens,
+			})
+			.from(conversations)
+			.where(eq(conversations.id, id));
 
-		if (convResult.rows.length === 0) return null;
+		if (convResult.length === 0) return null;
 
-		const messagesResult = await turso.execute({
-			sql: "SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC",
-			args: [id],
-		});
+		const messagesResult = await db
+			.select()
+			.from(messages)
+			.where(eq(messages.conversationId, id))
+			.orderBy(messages.createdAt);
 
 		// Return UIMessage[] directly - parts are stored as JSON
 		return {
-			messages: messagesResult.rows.map((m: Row) => ({
-				id: m.id as string,
+			messages: messagesResult.map((m) => ({
+				id: m.id,
 				role: m.role as "user" | "assistant",
-				parts: JSON.parse(m.parts as string),
-				createdAt: new Date(m.created_at as number),
+				parts: JSON.parse(m.parts),
+				createdAt: new Date(m.createdAt),
 			})),
-			totalTokens: (convResult.rows[0].total_tokens as number) ?? 0,
+			totalTokens: convResult[0].totalTokens ?? 0,
 		};
 	} catch (error) {
 		console.error("Failed to fetch conversation:", error);
@@ -81,9 +93,10 @@ export async function createConversation() {
 		const id = generateId();
 		const now = Date.now();
 
-		await turso.execute({
-			sql: "INSERT INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)",
-			args: [id, now, now],
+		await db.insert(conversations).values({
+			id,
+			createdAt: now,
+			updatedAt: now,
 		});
 
 		// Revalidate conversations list
@@ -103,15 +116,9 @@ export async function createConversation() {
 export async function deleteConversation(id: string) {
 	try {
 		// Delete messages first (foreign key constraint)
-		await turso.execute({
-			sql: "DELETE FROM messages WHERE conversation_id = ?",
-			args: [id],
-		});
+		await db.delete(messages).where(eq(messages.conversationId, id));
 
-		await turso.execute({
-			sql: "DELETE FROM conversations WHERE id = ?",
-			args: [id],
-		});
+		await db.delete(conversations).where(eq(conversations.id, id));
 
 		// Revalidate paths
 		revalidatePath("/");

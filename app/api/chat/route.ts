@@ -1,4 +1,5 @@
-import { turso } from "@/lib/db";
+import { db, messages, conversations } from "@/lib/db";
+import { eq, sql } from "drizzle-orm";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { consumeStream, convertToModelMessages, generateId, pruneMessages, streamText } from "ai";
 import type { ChatMessage } from "@/lib/types";
@@ -11,24 +12,21 @@ const openrouter = createOpenRouter({
 
 // Helper to load chat messages from database (following docs pattern)
 async function loadChat(id: string): Promise<ChatMessage[]> {
-	const result = await turso.execute({
-		sql: "SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC",
-		args: [id],
-	});
+	const result = await db.select().from(messages).where(eq(messages.conversationId, id)).orderBy(messages.createdAt);
 
-	return result.rows.map((row) => ({
-		id: row.id as string,
+	return result.map((row) => ({
+		id: row.id,
 		role: row.role as "user" | "assistant",
-		parts: JSON.parse(row.parts as string),
+		parts: JSON.parse(row.parts),
 	}));
 }
 
 // Helper to save all chat messages to database (following docs pattern)
-async function saveChat({ chatId, messages }: { chatId: string; messages: ChatMessage[] }) {
+async function saveChat({ chatId, messages: chatMessages }: { chatId: string; messages: ChatMessage[] }) {
 	// Only save the last 2 messages (user message + AI response)
 	// Previous messages are already persisted in the database
-	const userMessage = messages.at(-2); // Second to last = user message
-	const aiMessage = messages.at(-1); // Last = AI response
+	const userMessage = chatMessages.at(-2); // Second to last = user message
+	const aiMessage = chatMessages.at(-1); // Last = AI response
 
 	const messagesToSave = [userMessage, aiMessage].filter(Boolean) as ChatMessage[];
 
@@ -40,17 +38,34 @@ async function saveChat({ chatId, messages }: { chatId: string; messages: ChatMe
 		const orderOffset = messagesToSave.indexOf(msg);
 		const timestamp = baseTime + orderOffset;
 
-		await turso.execute({
-			sql: "INSERT OR REPLACE INTO messages (id, role, parts, created_at, conversation_id) VALUES (?, ?, ?, ?, ?)",
-			args: [msg.id, msg.role, JSON.stringify(msg.parts), timestamp, chatId],
-		});
+		await db
+			.insert(messages)
+			.values({
+				id: msg.id,
+				role: msg.role as "user" | "assistant",
+				parts: JSON.stringify(msg.parts),
+				createdAt: timestamp,
+				conversationId: chatId,
+			})
+			.onConflictDoUpdate({
+				target: messages.id,
+				set: {
+					role: msg.role as "user" | "assistant",
+					parts: JSON.stringify(msg.parts),
+					createdAt: timestamp,
+				},
+			});
 	}
 
 	// Update conversation timestamp and add tokens
-	await turso.execute({
-		sql: "UPDATE conversations SET updated_at = ?, total_tokens = COALESCE(total_tokens, 0) + ? WHERE id = ?",
-		args: [Date.now(), messages.at(-1)?.metadata?.tokens ?? 0, chatId],
-	});
+	const tokensToAdd = chatMessages.at(-1)?.metadata?.tokens ?? 0;
+	await db
+		.update(conversations)
+		.set({
+			updatedAt: Date.now(),
+			totalTokens: sql`COALESCE(${conversations.totalTokens}, 0) + ${tokensToAdd}`,
+		})
+		.where(eq(conversations.id, chatId));
 }
 
 export async function POST(req: Request) {
@@ -75,7 +90,7 @@ export async function POST(req: Request) {
 	const previousMessages = await loadChat(conversationId);
 
 	// Combine messages with proper typing for originalMessages
-	const allMessages: ChatMessage[] = [...previousMessages.slice(0, -3), message];
+	const allMessages: ChatMessage[] = [...previousMessages.slice(-3), message];
 
 	const modelMessages = convertToModelMessages(allMessages);
 
@@ -112,9 +127,9 @@ export async function POST(req: Request) {
 				};
 			}
 		},
-		async onFinish({ messages }) {
+		async onFinish({ messages: finishedMessages }) {
 			if (hasError) return;
-			await saveChat({ chatId: conversationId, messages });
+			await saveChat({ chatId: conversationId, messages: finishedMessages });
 		},
 	});
 }

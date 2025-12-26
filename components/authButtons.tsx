@@ -39,7 +39,7 @@ export function UserMenu() {
 
 	return (
 		<div className="flex items-center gap-3">
-			<span className="text-sm text-muted-foreground">{session.user.name || session.user.email}</span>
+			<span className="text-sm text-muted-foreground">{session.user.name ?? session.user.email}</span>
 			<form action={signOutAction}>
 				<Button type="submit" variant="outline" size="sm">
 					Sign Out

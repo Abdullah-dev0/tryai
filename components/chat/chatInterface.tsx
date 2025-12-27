@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { ChatMessage } from "@/lib/types";
@@ -20,11 +21,16 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: ChatInterfaceProps) {
+	const router = useRouter();
 	const [model, setModel] = React.useState(DEFAULT_MODEL);
 	const [input, setInput] = React.useState("");
 	const [sessionTokens, setSessionTokens] = React.useState(totalTokens);
 	const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = React.useRef<HTMLDivElement>(null);
+
+	// Track if we've already refreshed for the first interaction
+	// If we already have messages, mark as refreshed so we never trigger again
+	const hasRefreshed = React.useRef(initialMessages.length > 0);
 
 	const { messages, sendMessage, status, stop, error, regenerate } = useChat({
 		id,
@@ -41,10 +47,17 @@ export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: Cha
 				};
 			},
 		}),
-		onFinish: ({ message }) => {
+		onFinish: ({ message, messages: allMessages }) => {
 			const tokens = message.metadata?.tokens ?? 0;
 			setSessionTokens((prev) => prev + tokens);
 			textareaRef.current?.focus();
+
+			// Only refresh sidebar when first interaction completes (0 -> 2 messages)
+			const isFirstInteraction = allMessages.length === 2;
+			if (isFirstInteraction && !hasRefreshed.current) {
+				router.refresh();
+				hasRefreshed.current = true;
+			}
 		},
 		onError: (err) => {
 			console.error("Chat error:", err);

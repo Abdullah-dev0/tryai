@@ -10,7 +10,7 @@ export async function Sidebar() {
 	const conversations = getConversations();
 
 	return (
-		<div className="w-64 flex-col bg-card md:flex">
+		<div className="h-full w-64 flex-col bg-card md:flex border-r">
 			{/* Header with Logo - Static, server rendered */}
 			<div className="flex h-14 items-center px-4">
 				<Link href="/" className="text-lg font-bold hover:opacity-80 transition-opacity">

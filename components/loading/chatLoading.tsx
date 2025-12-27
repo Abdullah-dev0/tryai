@@ -3,17 +3,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function ChatLoading() {
 	return (
 		<div className="flex h-full flex-col bg-background">
-			{/* Header Skeleton */}
-			<header className="flex h-14 items-center justify-between border-b px-4">
-				<Skeleton className="h-4 w-12" />
-				<Skeleton className="h-8 w-32" />
-			</header>
-
-			{/* Messages Skeleton */}
 			<main className="flex-1 overflow-y-auto">
 				<div className="mx-auto max-w-2xl px-4 py-8">
 					<div className="flex flex-col gap-4 p-4">
-						{/* User message skeleton */}
 						<div className="flex gap-4 justify-end">
 							<Skeleton className="h-16 w-3/4 rounded-2xl" />
 							<Skeleton className="h-8 w-8 rounded-full" />

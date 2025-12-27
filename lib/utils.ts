@@ -33,7 +33,7 @@ export function groupByDate<T extends DateGroupable>(items: T[]) {
 		{ label: "Older", items: [] },
 	];
 
-	items.forEach((item) => {
+	items?.forEach((item) => {
 		const date = new Date(item.updatedAt);
 		if (date >= today) {
 			groups[0].items.push(item);

@@ -85,9 +85,11 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 									{group.items.map((conversation) => {
 										const isActive = currentId === conversation.id;
 										const rawTitle = conversation.lastMessage ? stripMarkdown(conversation.lastMessage) : null;
-										const title = rawTitle
-											? rawTitle.length > 20
-												? rawTitle.substring(0, 20) + "..."
+										// Use Array.from to properly handle Unicode/emoji characters
+										const titleChars = rawTitle ? Array.from(rawTitle) : null;
+										const title = titleChars
+											? titleChars.length > 20
+												? titleChars.slice(0, 20).join("") + "..."
 												: rawTitle
 											: "New chat";
 

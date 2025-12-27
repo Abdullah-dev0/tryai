@@ -22,7 +22,7 @@ export const getSession = cache(async () => {
 	});
 
 	if (!session?.user) {
-		redirect("/sign-in");
+		redirect("/signin");
 	}
 
 	return session;

@@ -1,10 +1,9 @@
-import { Sparkles, MessageSquarePlus, Zap, Shield } from "lucide-react";
-import { getConversations } from "../actions/conversationActions";
 import CreateConversationButton from "@/components/chat/createConversationButton";
+import { MessageSquarePlus, Shield, Sparkles, Zap } from "lucide-react";
+import { getConversations } from "../actions/conversationActions";
+import { Suspense } from "react";
 
 export default async function HomePage() {
-	const conversations = await getConversations();
-
 	return (
 		<div className="flex h-full w-full flex-col bg-background">
 			{/* Header */}
@@ -40,10 +39,9 @@ export default async function HomePage() {
 
 					{/* Action Area */}
 					<div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-						<CreateConversationButton
-							className="h-12 px-8 text-base shadow-lg shadow-primary/20"
-							conversations={conversations}
-						/>
+						<Suspense fallback={<div>Loading...</div>}>
+							<ConversationButton />
+						</Suspense>
 					</div>
 
 					{/* Feature Grid (Optional minimalist cues) */}
@@ -65,4 +63,10 @@ export default async function HomePage() {
 			</main>
 		</div>
 	);
+}
+
+async function ConversationButton() {
+	const conversations = await getConversations();
+
+	return <CreateConversationButton conversations={conversations} />;
 }

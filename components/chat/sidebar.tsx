@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { User } from "lucide-react";
 
 import { getConversations } from "@/app/actions/conversationActions";
-import { SidebarContent } from "./sidebarContent";
 import { Suspense } from "react";
 import { SidebarSkeleton } from "../loading/sidebarSkeleton";
+import { SidebarContent } from "./sidebarContent";
+import { SidebarUser } from "./sidebarUser";
 
 export async function Sidebar() {
 	const conversations = getConversations();
@@ -22,16 +22,22 @@ export async function Sidebar() {
 				<SidebarContent conversations={conversations} />
 			</Suspense>
 
-			{/* User Profile - Static, server rendered */}
-			<div className="border-t p-3">
-				<div className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-accent/50 transition-colors cursor-pointer">
-					<div className="h-8 w-8 rounded-full bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-						<User className="h-4 w-4 text-white" />
-					</div>
-					<div className="flex-1 min-w-0">
-						<p className="text-sm font-medium truncate">User</p>
-						<p className="text-xs text-muted-foreground">Free</p>
-					</div>
+			{/* User Profile - Streamed with session */}
+			<Suspense fallback={<SidebarUserSkeleton />}>
+				<SidebarUser />
+			</Suspense>
+		</div>
+	);
+}
+
+function SidebarUserSkeleton() {
+	return (
+		<div className="border-t p-3">
+			<div className="flex items-center gap-3 rounded-lg px-2 py-2">
+				<div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+				<div className="flex-1 min-w-0 space-y-1.5">
+					<div className="h-4 w-20 rounded bg-muted animate-pulse" />
+					<div className="h-3 w-12 rounded bg-muted animate-pulse" />
 				</div>
 			</div>
 		</div>

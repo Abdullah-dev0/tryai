@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { consumeStream, convertToModelMessages, generateId, pruneMessages, streamText } from "ai";
 import type { ChatMessage } from "@/lib/types";
+import { getSession } from "@/lib/data/auth";
 
 export const maxDuration = 30;
 
@@ -75,6 +76,12 @@ export async function POST(req: Request) {
 	};
 	const model = body?.model;
 	const conversationId = body?.conversationId;
+
+	const session = await getSession();
+
+	if (!session?.user) {
+		return new Response("Unauthorized", { status: 401 });
+	}
 
 	const targetModel = model && model.trim().length > 0 ? model : "arcee-ai/trinity-mini:free";
 

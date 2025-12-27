@@ -1,51 +1,23 @@
 "use server";
 
-import { db, conversations, messages } from "@/lib/db";
-import { eq, desc, sql } from "drizzle-orm";
+import { getSession } from "@/lib/data/auth";
+import { getUserConversations } from "@/lib/data/conversation";
+import { conversations, db, messages } from "@/lib/db";
+import { Conversation } from "@/lib/types";
 import { generateId } from "ai";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cache } from "react";
 
-export const getConversations = cache(async () => {
-	try {
-		// Get conversations with their last message
-		const result = await db
-			.select({
-				id: conversations.id,
-				createdAt: conversations.createdAt,
-				updatedAt: conversations.updatedAt,
-				lastParts: sql<string | null>`(
-					SELECT ${messages.parts} 
-					FROM ${messages} 
-					WHERE ${messages.conversationId} = ${conversations.id} 
-					ORDER BY ${messages.createdAt} DESC 
-					LIMIT 1
-				)`,
-			})
-			.from(conversations)
-			.orderBy(desc(conversations.updatedAt));
+export const getConversations = cache(async (): Promise<Conversation[]> => {
+	const session = await getSession();
 
-		return result.map((row) => {
-			// Extract text from parts JSON for preview
-			let lastMessage: string | null = null;
-			if (row.lastParts) {
-				try {
-					const parts = JSON.parse(row.lastParts);
-					lastMessage = parts
-						.filter((p: { type: string }) => p.type === "text")
-						.map((p: { text: string }) => p.text)
-						.join("");
-				} catch {
-					lastMessage = null;
-				}
-			}
-			return {
-				id: row.id,
-				createdAt: new Date(row.createdAt),
-				updatedAt: new Date(row.updatedAt),
-				lastMessage,
-			};
-		});
+	if (!session?.user) {
+		return [];
+	}
+	try {
+		const conversations = await getUserConversations(session.user.id);
+		return conversations;
 	} catch (error) {
 		console.error("Failed to fetch conversations:", error);
 		return [];
@@ -72,7 +44,6 @@ export const getConversation = async (id: string) => {
 			.where(eq(messages.conversationId, id))
 			.orderBy(messages.createdAt);
 
-		// Return UIMessage[] directly - parts are stored as JSON
 		return {
 			messages: messagesResult.map((m) => ({
 				id: m.id,
@@ -89,17 +60,22 @@ export const getConversation = async (id: string) => {
 };
 
 export async function createConversation() {
+	const session = await getSession();
+
+	if (!session?.user) {
+		return null;
+	}
 	try {
 		const id = generateId();
 		const now = Date.now();
 
 		await db.insert(conversations).values({
 			id,
+			userId: session.user.id,
 			createdAt: now,
 			updatedAt: now,
 		});
 
-		// Revalidate conversations list
 		revalidatePath("/");
 
 		return {
@@ -115,12 +91,7 @@ export async function createConversation() {
 
 export async function deleteConversation(id: string) {
 	try {
-		// Delete messages first (foreign key constraint)
-		await db.delete(messages).where(eq(messages.conversationId, id));
-
 		await db.delete(conversations).where(eq(conversations.id, id));
-
-		// Revalidate paths
 		revalidatePath("/");
 	} catch (error) {
 		console.error("Failed to delete conversation:", error);

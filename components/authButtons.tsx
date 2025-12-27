@@ -20,7 +20,7 @@ export function SignInButtons() {
 	};
 
 	return (
-		<div className="flex flex-col gap-6 py-7">
+		<div className="flex flex-col gap-2 py-7">
 			<Button
 				variant="outline"
 				size="lg"

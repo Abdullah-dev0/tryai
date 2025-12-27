@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 import { getConversations } from "@/app/actions/conversationActions";
 import { Suspense } from "react";
@@ -12,9 +13,9 @@ export async function Sidebar() {
 	return (
 		<div className="h-full w-64 flex-col bg-card md:flex border-r">
 			{/* Header with Logo - Static, server rendered */}
-			<div className="flex h-14 items-center px-4">
-				<Link href="/" className="text-lg font-bold hover:opacity-80 transition-opacity">
-					TryAI
+			<div className="flex h-14 items-center py-9 px-4">
+				<Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+					<Image src="/logo.png" alt="Mind Logo" width={50} height={50} priority className="object-cover" />
 				</Link>
 			</div>
 

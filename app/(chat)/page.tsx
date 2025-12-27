@@ -1,5 +1,6 @@
 import CreateConversationButton from "@/components/chat/createConversationButton";
-import { MessageSquarePlus, Shield, Sparkles, Zap } from "lucide-react";
+import { MessageSquarePlus, Shield, Zap } from "lucide-react";
+import Image from "next/image";
 import { getConversations } from "../actions/conversationActions";
 import { Suspense } from "react";
 
@@ -9,10 +10,7 @@ export default async function HomePage() {
 			{/* Header */}
 			<header className="flex items-center justify-between border-b px-8 py-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 sticky top-0 z-10">
 				<div className="flex items-center gap-3">
-					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/20">
-						<Sparkles className="h-5 w-5 text-primary-foreground" />
-					</div>
-					<h1 className="text-lg font-bold tracking-tight text-foreground">TryAI</h1>
+					<h1 className="text-lg font-bold tracking-tight text-foreground">Mind</h1>
 				</div>
 			</header>
 
@@ -23,8 +21,8 @@ export default async function HomePage() {
 					<div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/5 blur-3xl rounded-full -z-10" />
 
 					{/* Hero Icon */}
-					<div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-muted border shadow-sm transition-transform hover:scale-105">
-						<Sparkles className="h-10 w-10 text-primary" />
+					<div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-muted border overflow-hidden shadow-sm transition-transform hover:scale-105">
+						<Image src="/logo.png" alt="Mind Logo" width={80} height={80} className="object-cover" />
 					</div>
 
 					{/* Text Content */}

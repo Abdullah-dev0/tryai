@@ -1,6 +1,7 @@
 import { SignInButtons } from "@/components/authButtons";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Zap, Shield, MessageSquare } from "lucide-react";
+import { Zap, Shield, MessageSquare } from "lucide-react";
+import Image from "next/image";
 
 export default function SignInPage() {
 	return (
@@ -11,10 +12,10 @@ export default function SignInPage() {
 					<div className="max-w-lg space-y-8">
 						{/* Logo */}
 						<div className="flex items-center gap-3 mb-12">
-							<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary">
-								<Sparkles className="h-6 w-6 text-primary-foreground" />
+							<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 overflow-hidden">
+								<Image src="/logo.png" alt="Mind Logo" width={48} height={48} className="object-cover" />
 							</div>
-							<span className="text-2xl font-bold text-foreground">TryAI</span>
+							<span className="text-2xl font-bold text-foreground">Mind</span>
 						</div>
 
 						{/* Hero text */}
@@ -53,10 +54,10 @@ export default function SignInPage() {
 					<div className="w-full max-w-md">
 						{/* Mobile logo */}
 						<div className="flex lg:hidden items-center justify-center gap-3 mb-8">
-							<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary">
-								<Sparkles className="h-6 w-6 text-primary-foreground" />
+							<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 overflow-hidden">
+								<Image src="/logo.png" alt="Mind Logo" width={48} height={48} className="object-cover" />
 							</div>
-							<span className="text-2xl font-bold text-foreground">TryAI</span>
+							<span className="text-2xl font-bold text-foreground">Mind</span>
 						</div>
 
 						{/* Sign in card */}

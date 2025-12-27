@@ -8,8 +8,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-	title: "TryAI - Modern AI Chat",
-	description: "Experience the future of AI conversation",
+	title: "Mind - Modern AI Chat",
+	description:
+		"Mind is an intelligent AI chat application designed for seamless conversation, creative exploration, and efficient building. Experience the future of natural dialogue.",
 };
 
 export default function RootLayout({

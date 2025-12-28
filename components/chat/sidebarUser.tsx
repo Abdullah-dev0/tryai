@@ -1,7 +1,7 @@
-import { signOutAction } from "@/app/actions/authActions";
 import { getSession } from "@/lib/data/auth";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { User as UserIcon } from "lucide-react";
 import Image from "next/image";
+import { SidebarUserActions } from "./sidebarUserActions";
 
 export async function SidebarUser() {
 	const session = await getSession();
@@ -26,11 +26,7 @@ export async function SidebarUser() {
 					<p className="text-sm font-medium truncate">{session.user.name}</p>
 					<p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
 				</div>
-				<form action={signOutAction}>
-					<button type="submit" title="Sign out" className="cursor-pointer hover:opacity-80">
-						<LogOut className="h-4 w-4" color="red" />
-					</button>
-				</form>
+				<SidebarUserActions />
 			</div>
 		</div>
 	);

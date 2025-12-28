@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/chat/modelSelector";
 import { QUICK_ACTIONS, SUGGESTED_PROMPTS, DEFAULT_MODEL } from "@/lib/constants";
 import { MessageList } from "./messageList";
+import { useApiKey } from "@/hooks/useApiKey";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ChatInterfaceProps {
 	id?: string;
@@ -22,15 +24,12 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: ChatInterfaceProps) {
 	const router = useRouter();
+	const { apiKey } = useApiKey();
 	const [model, setModel] = React.useState(DEFAULT_MODEL);
 	const [input, setInput] = React.useState("");
 	const [sessionTokens, setSessionTokens] = React.useState(totalTokens);
 	const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = React.useRef<HTMLDivElement>(null);
-
-	// Track if we've already refreshed for the first interaction
-	// If we already have messages, mark as refreshed so we never trigger again
-	const hasRefreshed = React.useRef(initialMessages.length > 0);
 
 	const { messages, sendMessage, status, stop, error, regenerate } = useChat({
 		id,
@@ -51,12 +50,9 @@ export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: Cha
 			const tokens = message.metadata?.tokens ?? 0;
 			setSessionTokens((prev) => prev + tokens);
 			textareaRef.current?.focus();
-
-			// Only refresh sidebar when first interaction completes (0 -> 2 messages)
 			const isFirstInteraction = allMessages.length === 2;
-			if (isFirstInteraction && !hasRefreshed.current) {
+			if (isFirstInteraction) {
 				router.refresh();
-				hasRefreshed.current = true;
 			}
 		},
 		onError: (err) => {
@@ -89,6 +85,7 @@ export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: Cha
 					body: {
 						model,
 						conversationId: id,
+						apiKey: apiKey ?? undefined,
 					},
 				},
 			);
@@ -199,14 +196,19 @@ export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: Cha
 						<div className="flex items-center justify-between px-3 pb-3">
 							<div className="flex items-center gap-1">
 								<ModelSelector value={model} onValueChange={setModel} />
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									className="h-8 gap-1.5 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground">
-									<Globe className="h-3.5 w-3.5" />
-									Search
-								</Button>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											type="button"
+											variant="ghost"
+											size="sm"
+											className="h-8 gap-1.5 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground">
+											<Globe className="h-3.5 w-3.5" />
+											Search
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent side="top">Coming soon</TooltipContent>
+								</Tooltip>
 								{sessionTokens > 0 && (
 									<span className="flex items-center gap-1 text-xs text-muted-foreground px-2">
 										<Zap className="h-3 w-3" />

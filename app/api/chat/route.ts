@@ -7,9 +7,16 @@ import { getSession } from "@/lib/data/auth";
 
 export const maxDuration = 30;
 
-const openrouter = createOpenRouter({
+const defaultOpenRouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY!,
 });
+
+function getOpenRouterClient(customApiKey?: string) {
+	if (customApiKey && customApiKey.trim().length > 0) {
+		return createOpenRouter({ apiKey: customApiKey });
+	}
+	return defaultOpenRouter;
+}
 
 // Helper to load chat messages from database (following docs pattern)
 async function loadChat(id: string): Promise<ChatMessage[]> {
@@ -72,10 +79,11 @@ async function saveChat({ chatId, messages: chatMessages }: { chatId: string; me
 export async function POST(req: Request) {
 	const { message, body } = (await req.json()) as {
 		message: ChatMessage;
-		body?: { model?: string; conversationId?: string };
+		body?: { model?: string; conversationId?: string; apiKey?: string };
 	};
 	const model = body?.model;
 	const conversationId = body?.conversationId;
+	const customApiKey = body?.apiKey;
 
 	const session = await getSession();
 
@@ -108,8 +116,10 @@ export async function POST(req: Request) {
 		emptyMessages: "remove",
 	});
 
+	const openRouter = getOpenRouterClient(customApiKey);
+
 	const result = streamText({
-		model: openrouter(targetModel),
+		model: openRouter(targetModel),
 		messages: prunedMessages,
 		system: `
     You are a highly capable and intelligent AI assistant. 
@@ -124,6 +134,8 @@ export async function POST(req: Request) {
        - Use code blocks with language tags (e.g., \`\`\`json) for technical content.
     4. **Accuracy:** If you do not know an answer, admit it. Do not hallucinate facts.
     5. **Safety:** If a user requests harmful, illegal, or explicit content, politely refuse.
+		6. "Make it short and concise"
+		7. "Do not use any extra words or phrases"
 
     Focus on high-quality, readable, and actionable information.
   `,

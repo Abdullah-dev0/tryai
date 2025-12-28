@@ -10,11 +10,6 @@ export function ChatError() {
 
 	return (
 		<div className="flex h-full flex-col bg-background">
-			{/* Header */}
-			<header className="flex h-14 items-center justify-between border-b px-4">
-				<h1 className="text-sm font-medium text-muted-foreground">Chat</h1>
-			</header>
-
 			{/* Error Content */}
 			<main className="flex flex-1 items-center justify-center">
 				<div className="flex flex-col items-center gap-4 text-center max-w-md px-4">
@@ -26,11 +21,7 @@ export function ChatError() {
 						</p>
 					</div>
 					<div className="flex gap-3">
-						<Button
-							variant="outline"
-							onClick={() => router.refresh()}
-							className="gap-2"
-						>
+						<Button variant="outline" onClick={() => router.refresh()} className="gap-2">
 							<RotateCcw className="h-4 w-4" />
 							Retry
 						</Button>

@@ -7,6 +7,7 @@ import { Conversation } from "@/lib/types";
 import { generateId } from "ai";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { cache } from "react";
 
 export const getConversations = cache(async (): Promise<Conversation[]> => {
@@ -92,8 +93,9 @@ export async function createConversation() {
 export async function deleteConversation(id: string) {
 	try {
 		await db.delete(conversations).where(eq(conversations.id, id));
-		revalidatePath("/");
 	} catch (error) {
 		console.error("Failed to delete conversation:", error);
+		throw new Error("Failed to delete conversation");
 	}
+	revalidatePath("/");
 }

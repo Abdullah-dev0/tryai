@@ -6,6 +6,8 @@ import { Suspense } from "react";
 import { SidebarSkeleton } from "../loading/sidebarSkeleton";
 import { SidebarContent } from "./sidebarContent";
 import { SidebarUser } from "./sidebarUser";
+import { ErrorBoundary } from "../ui/error-boundary";
+import { SidebarError } from "../errors/sidebarError";
 
 export async function Sidebar() {
 	const conversations = getConversations();
@@ -14,14 +16,15 @@ export async function Sidebar() {
 		<div className="h-full w-64 flex-col bg-card md:flex border-r">
 			{/* Header with Logo - Static, server rendered */}
 			<div className="flex h-14 items-center py-9 px-4">
-				<Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-					<Image src="/logo.png" alt="Mind Logo" width={50} height={50} priority className="object-cover" />
+				<Link href="/">
+					<Image src="/logo.png" alt="Mind Logo" width={50} height={50} />
 				</Link>
 			</div>
-
-			<Suspense fallback={<SidebarSkeleton />}>
-				<SidebarContent conversations={conversations} />
-			</Suspense>
+			<ErrorBoundary fallback={<SidebarError />}>
+				<Suspense fallback={<SidebarSkeleton />}>
+					<SidebarContent conversations={conversations} />
+				</Suspense>
+			</ErrorBoundary>
 			{/* New Chat Button */}
 
 			{/* User Profile - Streamed with session */}

@@ -1,9 +1,9 @@
 "use client";
 
-import { MessageSquare, Search, Trash2 } from "lucide-react";
+import { Loader2, MessageSquare, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { use, useMemo, useState, useTransition } from "react";
+import { use, useMemo, useState } from "react";
 
 import { deleteConversation } from "@/app/actions/conversationActions";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, groupByDate, stripMarkdown } from "@/lib/utils";
 import CreateConversationButton from "./createConversationButton";
 import { Conversation } from "@/lib/types";
+import { toast } from "sonner";
 
 interface SidebarContentProps {
 	conversations: Promise<Conversation[]>;
@@ -20,7 +21,7 @@ interface SidebarContentProps {
 export function SidebarContent({ conversations }: SidebarContentProps) {
 	const router = useRouter();
 	const pathname = usePathname();
-	const [isPending, startTransition] = useTransition();
+	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const conversationsData = use(conversations);
 
@@ -35,16 +36,24 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 
 	const groupedConversations = useMemo(() => groupByDate(filteredConversations), [filteredConversations]);
 
-	const handleDelete = (e: React.MouseEvent, id: string) => {
-		e.preventDefault();
-		e.stopPropagation();
-		startTransition(async () => {
+	const handleDelete = async (id: string) => {
+		const isCurrentChat = currentId === id;
+		setDeletingId(id);
+
+		try {
 			await deleteConversation(id);
-			if (currentId === id) {
+			toast.success("Conversation deleted successfully");
+			if (isCurrentChat) {
 				router.push("/");
 			}
 			router.refresh();
-		});
+		} catch (error) {
+			toast.error("Failed to delete conversation", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
+		} finally {
+			setDeletingId(null);
+		}
 	};
 
 	return (
@@ -110,9 +119,12 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 													variant="ghost"
 													size="icon"
 													className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-													onClick={(e) => handleDelete(e, conversation.id)}
-													disabled={isPending}>
-													<Trash2 className="h-3 w-3" />
+													onClick={(e) => {
+														e.preventDefault();
+														handleDelete(conversation.id);
+													}}
+													disabled={deletingId == conversation.id}>
+													{deletingId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
 												</Button>
 											</Link>
 										);

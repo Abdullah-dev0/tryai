@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/chat/modelSelector";
 import { QUICK_ACTIONS, SUGGESTED_PROMPTS, DEFAULT_MODEL } from "@/lib/constants";
 import { MessageList } from "./messageList";
-import { useApiKey } from "@/hooks/useApiKey";
+import { useApiKey } from "@/contexts/apiKeyContext";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ChatInterfaceProps {

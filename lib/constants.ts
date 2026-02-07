@@ -54,7 +54,6 @@ export interface ModelOption {
 	isReasoning?: boolean;
 }
 
-// Brand colors for model icons
 export const BRAND_COLORS: Record<ModelBrand, string> = {
 	meta: "#0668E1",
 	google: "#4285F4",
@@ -68,127 +67,34 @@ export const BRAND_COLORS: Record<ModelBrand, string> = {
 	zhipu: "#00D4AA",
 	amazon: "#FF9900",
 	kwaipilot: "#FF3366",
-	nvidia: "#FF3366",
+	nvidia: "#76b900",
 };
 
-export const MODELS: ModelOption[] = [
-	// Meta Models
+/** Single-letter label for brand icon (e.g. "M" for meta) */
+export const BRAND_LABELS: Record<ModelBrand, string> = {
+	meta: "M",
+	google: "G",
+	qwen: "Q",
+	openai: "O",
+	mistral: "M",
+	microsoft: "MS",
+	deepseek: "D",
+	thudm: "T",
+	sarvam: "S",
+	zhipu: "Z",
+	amazon: "A",
+	kwaipilot: "K",
+	nvidia: "N",
+};
+
+export const DEFAULT_MODEL: ModelOption[] = [
 	{
-		value: "meta-llama/llama-3.2-3b-instruct:free",
-		label: "Llama 3.2 3B Instruct",
-		tagline: "Multilingual model for dialogue & reasoning",
-		context: "131K ctx",
+		value: "openrouter/auto",
+		label: "Auto",
+		tagline: "Auto-select the best model for your prompt",
+		context: "0",
 		inputs: "Text",
 		brand: "meta",
 		isReasoning: false,
 	},
-	// Qwen Models
-	{
-		value: "qwen/qwen3-4b:free",
-		label: "Qwen3 4B",
-		tagline: "Dual-mode thinking & non-thinking",
-		context: "41K ctx",
-		inputs: "Text",
-		brand: "qwen",
-		isReasoning: true,
-	},
-	// Google Gemma Models
-	{
-		value: "google/gemma-3-4b-it:free",
-		label: "Gemma 3 4B",
-		tagline: "Multimodal vision-language model",
-		context: "33K ctx",
-		inputs: "Text, Vision",
-		brand: "google",
-		isReasoning: false,
-	},
-	{
-		value: "google/gemma-3-12b-it:free",
-		label: "Gemma 3 12B",
-		tagline: "Larger Gemma 3 with advanced reasoning",
-		context: "33K ctx",
-		inputs: "Text, Vision",
-		brand: "google",
-		isReasoning: false,
-	},
-	{
-		value: "google/gemma-3n-e2b-it:free",
-		label: "Gemma 3n 2B",
-		tagline: "Efficient on-device multimodal model",
-		context: "8K ctx",
-		inputs: "Text, Vision, Audio",
-		brand: "google",
-		isReasoning: false,
-	},
-	{
-		value: "google/gemma-3n-e4b-it:free",
-		label: "Gemma 3n 4B",
-		tagline: "Mobile-optimized multimodal model",
-		context: "8K ctx",
-		inputs: "Text, Vision, Audio",
-		brand: "google",
-		isReasoning: false,
-	},
-	// OpenAI Models
-	{
-		value: "openai/gpt-oss-120b:free",
-		label: "GPT-OSS 120B",
-		tagline: "MoE model for agentic reasoning",
-		context: "131K ctx",
-		inputs: "Text",
-		brand: "openai",
-		isReasoning: true,
-	},
-	// DeepSeek Models
-	{
-		value: "tngtech/deepseek-r1t2-chimera:free",
-		label: "DeepSeek R1T2 Chimera",
-		tagline: "DeepSeek R1T2 Chimera",
-		context: "163K ctx",
-		inputs: "Text",
-		brand: "deepseek",
-		isReasoning: true,
-	},
-	// Zhipu Models
-	{
-		value: "zhipu-ai/glm-4-air:free",
-		label: "GLM 4 Air",
-		tagline: "Zhipu free model",
-		context: "128K ctx",
-		inputs: "Text",
-		brand: "zhipu",
-		isReasoning: false,
-	},
-
-	// Amazon Models
-	{
-		value: "amazon/nova-2-lite-v1:free",
-		label: "Nova 2 Lite",
-		tagline: "Fast, cost-effective reasoning model for text, images, and videos.",
-		context: "1M ctx",
-		inputs: "Text, Vision, Video",
-		brand: "amazon",
-		isReasoning: true,
-	},
-	{
-		value: "kwaipilot/kat-coder-pro:free",
-		label: "Kwaipilot KAT-Coder-Pro V1",
-		tagline: "Advanced agentic coding model",
-		context: "256K ctx",
-		inputs: "Text",
-		brand: "kwaipilot",
-		isReasoning: true,
-	},
-	// NVIDIA Models
-	{
-		value: "nvidia/nemotron-3-nano-30b-a3b:free",
-		label: "NVIDIA Nemotron 3 Nano 30B A3B",
-		tagline: "Small language MoE model for specialized agentic AI systems.",
-		context: "256K ctx",
-		inputs: "Text",
-		brand: "nvidia",
-		isReasoning: true,
-	},
 ];
-
-export const DEFAULT_MODEL = "openrouter/auto";

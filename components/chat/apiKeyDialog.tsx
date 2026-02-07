@@ -14,7 +14,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { useApiKey } from "@/hooks/useApiKey";
+import { useApiKey } from "@/contexts/apiKeyContext";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 

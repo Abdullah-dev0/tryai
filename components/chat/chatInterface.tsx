@@ -25,7 +25,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ id, initialMessages = [], totalTokens = 0 }: ChatInterfaceProps) {
 	const router = useRouter();
 	const { apiKey } = useApiKey();
-	const [model, setModel] = React.useState(DEFAULT_MODEL);
+	const [model, setModel] = React.useState(DEFAULT_MODEL[0].value);
 	const [input, setInput] = React.useState("");
 	const [sessionTokens, setSessionTokens] = React.useState(totalTokens);
 	const textareaRef = React.useRef<HTMLTextAreaElement>(null);

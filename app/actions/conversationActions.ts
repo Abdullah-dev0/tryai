@@ -1,13 +1,13 @@
 "use server";
 
 import { getSession } from "@/lib/data/auth";
-import { getUserConversations } from "@/lib/data/conversation";
-import { conversations, db, messages } from "@/lib/db";
+import { getConversationForUser, getUserConversations } from "@/lib/data/conversation";
+import { loadChat } from "@/lib/data/chat";
+import { conversations, db } from "@/lib/db";
 import { Conversation } from "@/lib/types";
 import { generateId } from "ai";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { cache } from "react";
 
 export const getConversations = cache(async (): Promise<Conversation[]> => {
@@ -26,33 +26,15 @@ export const getConversations = cache(async (): Promise<Conversation[]> => {
 });
 
 export const getConversation = async (id: string) => {
+	const session = await getSession();
+	if (!session?.user) return null;
 	try {
-		const convResult = await db
-			.select({
-				id: conversations.id,
-				createdAt: conversations.createdAt,
-				updatedAt: conversations.updatedAt,
-				totalTokens: conversations.totalTokens,
-			})
-			.from(conversations)
-			.where(eq(conversations.id, id));
-
-		if (convResult.length === 0) return null;
-
-		const messagesResult = await db
-			.select()
-			.from(messages)
-			.where(eq(messages.conversationId, id))
-			.orderBy(messages.createdAt);
-
+		const conv = await getConversationForUser(session.user.id, id);
+		if (!conv) return null;
+		const messages = await loadChat(id);
 		return {
-			messages: messagesResult.map((m) => ({
-				id: m.id,
-				role: m.role as "user" | "assistant",
-				parts: JSON.parse(m.parts),
-				createdAt: new Date(m.createdAt),
-			})),
-			totalTokens: convResult[0].totalTokens ?? 0,
+			messages,
+			totalTokens: conv.totalTokens ?? 0,
 		};
 	} catch (error) {
 		console.error("Failed to fetch conversation:", error);
@@ -91,8 +73,14 @@ export async function createConversation() {
 }
 
 export async function deleteConversation(id: string) {
+	const session = await getSession();
+	if (!session?.user) {
+		throw new Error("Unauthorized");
+	}
 	try {
-		await db.delete(conversations).where(eq(conversations.id, id));
+		await db
+			.delete(conversations)
+			.where(and(eq(conversations.id, id), eq(conversations.userId, session.user.id)));
 	} catch (error) {
 		console.error("Failed to delete conversation:", error);
 		throw new Error("Failed to delete conversation");

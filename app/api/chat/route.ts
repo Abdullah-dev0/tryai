@@ -1,9 +1,10 @@
-import { db, messages, conversations } from "@/lib/db";
-import { eq, sql } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { getConversationForUser } from "@/lib/data/conversation";
+import { loadChat, saveChat } from "@/lib/data/chat";
+import type { ChatMessage } from "@/lib/types";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { consumeStream, convertToModelMessages, generateId, pruneMessages, streamText } from "ai";
-import type { ChatMessage } from "@/lib/types";
-import { getSession } from "@/lib/data/auth";
+import { headers } from "next/headers";
 
 export const maxDuration = 30;
 
@@ -12,103 +13,59 @@ const defaultOpenRouter = createOpenRouter({
 });
 
 function getOpenRouterClient(customApiKey?: string) {
-	if (customApiKey && customApiKey.trim().length > 0) {
+	if (typeof customApiKey === "string" && customApiKey.trim().length > 0) {
 		return createOpenRouter({ apiKey: customApiKey });
 	}
 	return defaultOpenRouter;
 }
 
-// Helper to load chat messages from database (following docs pattern)
-async function loadChat(id: string): Promise<ChatMessage[]> {
-	const result = await db.select().from(messages).where(eq(messages.conversationId, id)).orderBy(messages.createdAt);
-
-	return result.map((row) => ({
-		id: row.id,
-		role: row.role as "user" | "assistant",
-		parts: JSON.parse(row.parts),
-	}));
-}
-
-// Helper to save all chat messages to database (following docs pattern)
-async function saveChat({ chatId, messages: chatMessages }: { chatId: string; messages: ChatMessage[] }) {
-	// Only save the last 2 messages (user message + AI response)
-	// Previous messages are already persisted in the database
-	const userMessage = chatMessages.at(-2); // Second to last = user message
-	const aiMessage = chatMessages.at(-1); // Last = AI response
-
-	const messagesToSave = [userMessage, aiMessage].filter(Boolean) as ChatMessage[];
-
-	const baseTime = Date.now();
-	for (const msg of messagesToSave) {
-		// Ensure deterministic order by adding index to baseTime
-		// This guarantees that later messages always have a later timestamp
-		// regardless of how fast the code executes
-		const orderOffset = messagesToSave.indexOf(msg);
-		const timestamp = baseTime + orderOffset;
-
-		await db
-			.insert(messages)
-			.values({
-				id: msg.id,
-				role: msg.role as "user" | "assistant",
-				parts: JSON.stringify(msg.parts),
-				createdAt: timestamp,
-				conversationId: chatId,
-			})
-			.onConflictDoUpdate({
-				target: messages.id,
-				set: {
-					role: msg.role as "user" | "assistant",
-					parts: JSON.stringify(msg.parts),
-					createdAt: timestamp,
-				},
-			});
-	}
-
-	// Update conversation timestamp and add tokens
-	const tokensToAdd = chatMessages.at(-1)?.metadata?.tokens ?? 0;
-	await db
-		.update(conversations)
-		.set({
-			updatedAt: Date.now(),
-			totalTokens: sql`COALESCE(${conversations.totalTokens}, 0) + ${tokensToAdd}`,
-		})
-		.where(eq(conversations.id, chatId));
-}
+const DEFAULT_MODEL = "arcee-ai/trinity-mini:free";
 
 export async function POST(req: Request) {
-	const { message, body } = (await req.json()) as {
-		message: ChatMessage;
-		body?: { model?: string; conversationId?: string; apiKey?: string };
-	};
-	const model = body?.model;
-	const conversationId = body?.conversationId;
-	const customApiKey = body?.apiKey;
+	let body: { message?: ChatMessage; body?: { model?: unknown; conversationId?: unknown; apiKey?: unknown } };
+	try {
+		body = await req.json();
+	} catch {
+		return new Response("Invalid JSON", { status: 400 });
+	}
 
-	const session = await getSession();
+	const session = await auth.api.getSession({
+		headers: await headers(),
+	});
 
 	if (!session?.user) {
 		return new Response("Unauthorized", { status: 401 });
 	}
 
-	const targetModel = model && model.trim().length > 0 ? model : "arcee-ai/trinity-mini:free";
+	const { message, body: innerBody } = body;
+	const rawModel = innerBody?.model;
+	const rawConversationId = innerBody?.conversationId;
+	const customApiKey = innerBody?.apiKey;
 
-	if (!message) {
+	const model =
+		typeof rawModel === "string" && rawModel.trim().length > 0 ? rawModel.trim() : DEFAULT_MODEL;
+	const conversationId =
+		typeof rawConversationId === "string" && rawConversationId.trim().length > 0
+			? rawConversationId.trim()
+			: "";
+
+	if (!message || typeof message !== "object") {
 		return new Response("No message provided", { status: 400 });
 	}
 
 	if (!conversationId) {
-		return new Response("No conversation ID provided what", { status: 400 });
+		return new Response("No conversation ID provided", { status: 400 });
 	}
 
-	// Load previous messages from database
-	const previousMessages = await loadChat(conversationId);
+	const conversation = await getConversationForUser(session.user.id, conversationId);
+	if (!conversation) {
+		return new Response("Forbidden", { status: 403 });
+	}
 
-	// Combine messages with proper typing for originalMessages
+	const previousMessages = await loadChat(conversationId);
 	const allMessages: ChatMessage[] = [...previousMessages.slice(-3), message];
 
 	const modelMessages = convertToModelMessages(allMessages);
-
 	const prunedMessages = pruneMessages({
 		messages: modelMessages,
 		reasoning: "all",
@@ -116,10 +73,12 @@ export async function POST(req: Request) {
 		emptyMessages: "remove",
 	});
 
-	const openRouter = getOpenRouterClient(customApiKey);
+	const apiKeyForClient =
+		typeof customApiKey === "string" && customApiKey.trim().length > 0 ? customApiKey : undefined;
+	const openRouter = getOpenRouterClient(apiKeyForClient);
 
 	const result = streamText({
-		model: openRouter(targetModel),
+		model: openRouter(model),
 		messages: prunedMessages,
 		system: `
     You are a highly capable and intelligent AI assistant. 
@@ -141,7 +100,6 @@ export async function POST(req: Request) {
   `,
 	});
 
-	// Track if an error occurs during streaming
 	let hasError = false;
 
 	return result.toUIMessageStreamResponse({

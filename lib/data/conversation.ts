@@ -1,5 +1,20 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { conversations, db, messages } from "../db";
+
+export async function getConversationForUser(userId: string, conversationId: string) {
+	const result = await db
+		.select({
+			id: conversations.id,
+			userId: conversations.userId,
+			createdAt: conversations.createdAt,
+			updatedAt: conversations.updatedAt,
+			totalTokens: conversations.totalTokens,
+		})
+		.from(conversations)
+		.where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
+		.limit(1);
+	return result[0] ?? null;
+}
 
 export const getUserConversations = async (userId: string) => {
 	// Subquery to get the latest message for each conversation

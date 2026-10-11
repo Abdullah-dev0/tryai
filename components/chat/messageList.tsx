@@ -1,9 +1,8 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { ChatMessage, ChatStatus } from "@/lib/types";
 import { cn, shortModelName } from "@/lib/utils";
-import { Bot, Brain, Check, ChevronRight, Copy, Globe, Loader2, RotateCcw, User } from "lucide-react";
+import { Brain, Check, Copy, Globe, Loader2, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Streamdown } from "streamdown";
 import { toast } from "sonner";
@@ -16,16 +15,9 @@ interface MessageListProps {
 
 function StreamingIndicator() {
 	return (
-		<div className="flex gap-4 justify-start animate-in fade-in-0 duration-300">
-			<Avatar className="w-8 h-8 mt-1 shrink-0">
-				<AvatarFallback className="bg-primary/10">
-					<Bot size={16} className="text-primary" />
-				</AvatarFallback>
-			</Avatar>
-			<div className="flex items-center gap-2 px-4 py-3">
-				<Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-				<span className="text-sm text-muted-foreground">Thinking...</span>
-			</div>
+		<div className="flex items-center gap-2 animate-in fade-in-0 duration-300">
+			<Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+			<span className="text-sm text-muted-foreground">Thinking...</span>
 		</div>
 	);
 }
@@ -39,27 +31,20 @@ function MessagePartRenderer({ part }: MessagePartRendererProps) {
 		case "reasoning":
 			return (
 				<details className="group">
-					<summary className="flex items-center gap-2 cursor-pointer list-none text-xs leading-5 text-muted-foreground hover:text-foreground transition-colors [&::-webkit-details-marker]:hidden">
-						<Brain
-							className={cn(
-								"h-3 w-3 transition-transform duration-200 group-hover:scale-110 group-open:text-primary",
-								part.state === "streaming" && "animate-pulse",
-							)}
-						/>
+					<summary className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors mb-2">
+						<Brain className="h-3 w-3" />
 						<span>View reasoning</span>
-						<ChevronRight className="h-3 w-3 transition-transform duration-200 group-open:rotate-90" />
 					</summary>
-					<pre className="mt-2 text-xs bg-muted/50 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap animate-in fade-in-0 slide-in-from-top-1 duration-200">{part.text}</pre>
+					<pre className="text-xs bg-card border p-3 rounded-xl overflow-x-auto whitespace-pre-wrap">{part.text}</pre>
 				</details>
 			);
 		case "text":
-			if (!part.text.trim()) return null;
 			return <Streamdown>{part.text}</Streamdown>;
 		case "file":
 			if (!part.mediaType.startsWith("image/")) return null;
 			return (
 				// eslint-disable-next-line @next/next/no-img-element
-				<img src={part.url} alt={part.filename ?? "Attached image"} className="max-h-64 rounded-lg object-contain" />
+				<img src={part.url} alt={part.filename ?? "Attached image"} className="max-h-64 rounded-xl object-contain" />
 			);
 		default:
 			return null;
@@ -79,7 +64,7 @@ function MessageSources({ message }: { message: ChatMessage }) {
 	if (sources.length === 0) return null;
 
 	return (
-		<div className="flex flex-wrap items-center gap-1.5 px-1">
+		<div className="flex flex-wrap items-center gap-1.5">
 			<Globe className="h-3 w-3 text-muted-foreground" />
 			{sources.map((source) => (
 				<a
@@ -88,7 +73,7 @@ function MessageSources({ message }: { message: ChatMessage }) {
 					target="_blank"
 					rel="noopener noreferrer"
 					title={source.title ?? source.url}
-					className="max-w-48 truncate rounded-full border border-border/60 px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+					className="max-w-48 truncate rounded-full border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
 					{hostname(source.url)}
 				</a>
 			))}
@@ -115,7 +100,7 @@ function CopyButton({ text }: { text: string }) {
 			onClick={handleCopy}
 			title="Copy"
 			aria-label="Copy message"
-			className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+			className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
 			{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
 		</button>
 	);
@@ -130,39 +115,16 @@ function messageDetails(message: ChatMessage) {
 	].filter(Boolean);
 }
 
-// The stream opens with a `step-start` part that renders nothing, so "has parts" is not "has content".
-function hasVisibleParts(message: ChatMessage) {
-	return message.parts?.some(
-		(part) => part.type === "reasoning" || part.type === "file" || (part.type === "text" && part.text.trim().length > 0),
-	);
-}
-
-function MessageRow({ isUser, animate, children }: { isUser: boolean; animate: boolean; children: React.ReactNode }) {
-	// Decided once on mount: a reply that takes over from the streaming indicator must not slide in again.
-	const [shouldAnimate] = useState(animate);
-
-	return (
-		<div
-			className={cn(
-				"group/message flex gap-4",
-				shouldAnimate && "animate-in fade-in-0 slide-in-from-bottom-2 duration-300",
-				isUser ? "justify-end" : "justify-start",
-			)}>
-			{children}
-		</div>
-	);
-}
-
 export function MessageList({ messages, status, onRegenerate }: MessageListProps) {
 	const lastMessage = messages.at(-1);
-	const isLastMessageEmpty = lastMessage?.role === "assistant" && !hasVisibleParts(lastMessage);
+	const isLastMessageEmpty = lastMessage?.role === "assistant" && !lastMessage.parts?.length;
 	const isBusy = status === "submitted" || status === "streaming";
 
 	const displayMessages = isLastMessageEmpty ? messages.slice(0, -1) : messages;
 	const showLoading = status === "submitted" || (status === "streaming" && isLastMessageEmpty);
 
 	return (
-		<div className="flex flex-col gap-4 p-4">
+		<div className="flex flex-col gap-6">
 			{displayMessages.map((message) => {
 				const isUser = message.role === "user";
 				const isLast = message.id === lastMessage?.id;
@@ -174,56 +136,43 @@ export function MessageList({ messages, status, onRegenerate }: MessageListProps
 				const details = isUser ? [] : messageDetails(message);
 
 				return (
-					<MessageRow key={message.id} isUser={isUser} animate={isUser || !isStreaming}>
-						{!isUser && (
-							<Avatar className="w-8 h-8 mt-1 shrink-0">
-								<AvatarFallback className="bg-primary/10">
-									<Bot size={16} className="text-primary" />
-								</AvatarFallback>
-							</Avatar>
-						)}
-						<div className={cn("flex min-w-0 flex-col gap-1.5", isUser && "items-end")}>
+					<div
+						key={message.id}
+						className={cn(
+							"group/message flex min-w-0 flex-col gap-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300",
+							isUser && "items-end",
+						)}>
+						<div
+							className={cn(
+								"min-w-0 space-y-2 text-[15px] leading-relaxed",
+								isUser ? "max-w-[80%] rounded-[18px] rounded-br-sm bg-secondary px-4 py-3" : "w-full",
+							)}>
+							{message.parts?.map((part, index) => (
+								<MessagePartRenderer key={index} part={part} />
+							))}
+						</div>
+						{!isUser && <MessageSources message={message} />}
+						{(isUser || !isStreaming) && (
 							<div
 								className={cn(
-									"rounded-2xl max-w-2xl px-4 py-3",
-									isUser ? "bg-primary text-primary-foreground" : "bg-muted/50",
+									"flex items-center gap-1 text-xs text-muted-foreground",
+									isUser && "opacity-0 group-hover/message:opacity-100 focus-within:opacity-100 transition-opacity",
 								)}>
-								<div className="space-y-2 text-sm sm:text-base leading-relaxed">
-									{message.parts?.map((part, index) => (
-										<MessagePartRenderer key={index} part={part} />
-									))}
-								</div>
+								{details.length > 0 && <span className="pr-1 font-mono">{details.join(" · ")}</span>}
+								{text && <CopyButton text={text} />}
+								{!isUser && isLast && onRegenerate && (
+									<button
+										type="button"
+										onClick={onRegenerate}
+										title="Regenerate"
+										aria-label="Regenerate response"
+										className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg hover:bg-accent hover:text-foreground transition-colors">
+										<RotateCcw className="h-3.5 w-3.5" />
+									</button>
+								)}
 							</div>
-							{!isUser && <MessageSources message={message} />}
-							{(isUser || !isStreaming) && (
-								<div
-									className={cn(
-										"flex items-center gap-1 px-1 text-xs text-muted-foreground",
-										isUser && "opacity-0 group-hover/message:opacity-100 focus-within:opacity-100 transition-opacity",
-									)}>
-									{text && <CopyButton text={text} />}
-									{!isUser && isLast && onRegenerate && (
-										<button
-											type="button"
-											onClick={onRegenerate}
-											title="Regenerate"
-											aria-label="Regenerate response"
-											className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md hover:bg-accent hover:text-foreground transition-colors">
-											<RotateCcw className="h-3.5 w-3.5" />
-										</button>
-									)}
-									{details.length > 0 && <span className="pl-1">{details.join(" · ")}</span>}
-								</div>
-							)}
-						</div>
-						{isUser && (
-							<Avatar className="w-8 h-8 mt-1 shrink-0">
-								<AvatarFallback className="bg-primary text-primary-foreground">
-									<User size={16} />
-								</AvatarFallback>
-							</Avatar>
 						)}
-					</MessageRow>
+					</div>
 				);
 			})}
 			{showLoading && <StreamingIndicator />}

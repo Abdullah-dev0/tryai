@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cache } from "react";
+import { Suspense, cache } from "react";
 
 import { MessageList } from "@/components/chat/messageList";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,15 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 	return { title: conversation ? `${conversation.title ?? "Shared conversation"} - Mind` : "Mind" };
 }
 
-export default async function SharePage({ params }: SharePageProps) {
+export default function SharePage({ params }: SharePageProps) {
+	return (
+		<Suspense fallback={<div role="status" aria-label="Loading conversation" className="h-screen bg-background" />}>
+			<SharedConversation params={params} />
+		</Suspense>
+	);
+}
+
+async function SharedConversation({ params }: SharePageProps) {
 	const { id } = await params;
 	const conversation = await getSharedConversation(id);
 

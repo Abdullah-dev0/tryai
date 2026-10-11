@@ -13,5 +13,13 @@ export async function getOpenRouterModels(): Promise<OpenRouterModel[]> {
 	}
 
 	const json: OpenRouterModelsResponse = await res.json();
-	return Array.isArray(json?.data) ? json.data : [];
+	return Array.isArray(json?.data) ? json.data.filter(isChatModel) : [];
+}
+
+// OpenRouter lists safety classifiers alongside chat models with no flag to tell them apart.
+const CLASSIFIER_ID_PATTERN = /content-safety|guard|moderation/i;
+
+function isChatModel(model: OpenRouterModel): boolean {
+	if (CLASSIFIER_ID_PATTERN.test(model.id)) return false;
+	return model.architecture?.output_modalities?.includes("text") ?? true;
 }

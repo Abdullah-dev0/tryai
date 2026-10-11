@@ -13,7 +13,6 @@ import { useApiKey } from "@/contexts/apiKeyContext";
 import { useActiveModel } from "@/hooks/useModels";
 import { useSelectedModel } from "@/hooks/useSelectedModel";
 import type { ChatMessage } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 const COLUMNS = [
 	{ key: "tryai-compare-a", label: "Model A" },
@@ -41,19 +40,19 @@ function CompareColumn({ label, column }: { label: string; column: CompareColumn
 	const isLoading = column.status === "streaming" || column.status === "submitted";
 
 	return (
-		<section aria-label={label} className="flex min-h-0 min-w-0 flex-1 flex-col">
-			<div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b px-3">
+		<section aria-label={label} className="flex min-h-0 min-w-0 flex-1 flex-col rounded-[20px] border bg-card">
+			<div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-4 pt-4">
 				<ModelSelector value={column.activeModel} onValueChange={column.setModel} />
-				<span className="truncate text-xs text-muted-foreground">{isLoading ? "Generating…" : latency(column)}</span>
+				<span className="truncate font-mono text-xs text-muted-foreground">{isLoading ? "Generating…" : latency(column)}</span>
 			</div>
-			<div className="flex-1 overflow-y-auto">
+			<div className="flex-1 overflow-y-auto p-5">
 				{column.messages.length === 0 ? (
-					<p className="px-4 py-10 text-center text-sm text-muted-foreground">{label} will answer here.</p>
+					<p className="py-10 text-center text-sm text-muted-foreground">{label} will answer here.</p>
 				) : (
 					<MessageList messages={column.messages} status={column.status} />
 				)}
 				{column.error && (
-					<div className="mx-4 mb-4 flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+					<div className="mt-4 flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
 						<AlertCircle className="h-4 w-4 shrink-0" />
 						<span>
 							{column.error.message.length <= 160 ? column.error.message : "Something went wrong. Please try again."}
@@ -101,11 +100,11 @@ export function CompareInterface() {
 	};
 
 	return (
-		<div className="flex h-full flex-col bg-background">
-			<header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b px-4">
-				<div className="flex min-w-0 items-baseline gap-3">
-					<h1 className="text-sm font-medium text-foreground">Compare models</h1>
-					<p className="hidden truncate text-xs text-muted-foreground sm:block">
+		<div className="mx-auto flex h-full w-full max-w-[1200px] flex-col gap-6 bg-background px-6 pb-6 pt-7">
+			<header className="flex shrink-0 flex-wrap items-center justify-between gap-4">
+				<div className="flex min-w-0 flex-wrap items-baseline gap-3">
+					<h1 className="font-display text-[26px] font-semibold tracking-tight">Compare models</h1>
+					<p className="hidden truncate text-sm text-muted-foreground sm:block">
 						One prompt, two models. Comparisons are not saved.
 					</p>
 				</div>
@@ -115,21 +114,21 @@ export function CompareInterface() {
 					size="sm"
 					disabled={!hasMessages || isLoading}
 					onClick={handleClear}
-					className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground">
-					<Trash2 className="h-3.5 w-3.5" />
+					className="h-11 gap-2 rounded-xl px-3 text-sm text-muted-foreground hover:text-foreground">
+					<Trash2 className="h-4 w-4" />
 					Clear
 				</Button>
 			</header>
 
-			<main className="flex min-h-0 flex-1 flex-col divide-y md:flex-row md:divide-x md:divide-y-0">
+			<main className="flex min-h-0 flex-1 flex-col gap-5 md:flex-row">
 				{COLUMNS.map((config, index) => (
 					<CompareColumn key={config.key} label={config.label} column={columns[index]} />
 				))}
 			</main>
 
-			<div className="border-t bg-background/80 backdrop-blur-sm">
-				<form onSubmit={handleSubmit} className="mx-auto max-w-3xl px-4 py-4">
-					<div className="flex items-end gap-2 rounded-2xl border bg-card px-4 py-3 shadow-lg">
+			<div>
+				<form onSubmit={handleSubmit}>
+					<div className="flex items-end gap-2 rounded-[28px] border border-input bg-card py-2 pl-4 pr-2">
 						<Textarea
 							value={input}
 							onChange={(e) => setInput(e.target.value)}
@@ -137,6 +136,8 @@ export function CompareInterface() {
 							placeholder="Ask both models the same question..."
 							disabled={isLoading}
 							rows={1}
+							aria-label="Prompt for both models"
+							className="min-h-11 resize-none border-0 bg-transparent px-1 py-2.5 text-base shadow-none focus-visible:ring-0 md:text-base dark:bg-transparent"
 						/>
 						{isLoading ? (
 							<Button
@@ -144,7 +145,7 @@ export function CompareInterface() {
 								size="icon"
 								variant="ghost"
 								onClick={() => columns.forEach((column) => column.stop())}
-								className="h-9 w-9 shrink-0 rounded-full"
+								className="h-11 w-14 shrink-0 rounded-full"
 								title="Stop generating">
 								<Square className="h-4 w-4" />
 							</Button>
@@ -153,10 +154,7 @@ export function CompareInterface() {
 								type="submit"
 								size="icon"
 								disabled={!canSend}
-								className={cn(
-									"h-9 w-9 shrink-0 rounded-full transition-all",
-									canSend ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground",
-								)}
+								className="h-11 w-14 shrink-0 rounded-full"
 								title="Send message">
 								<ArrowUp className="h-4 w-4" />
 							</Button>

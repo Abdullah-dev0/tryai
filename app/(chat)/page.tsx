@@ -1,62 +1,24 @@
 import CreateConversationButton from "@/components/chat/createConversationButton";
-import { MessageSquarePlus, Shield, Zap } from "lucide-react";
-import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getConversations } from "../actions/conversationActions";
 import { Suspense } from "react";
 
-export default async function HomePage() {
+export default function HomePage() {
 	return (
-		<div className="flex h-full w-full flex-col bg-background">
-			{/* Header */}
-			<header className="flex items-center justify-between border-b px-8 py-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 sticky top-0 z-10">
-				<div className="flex items-center gap-3">
-					<h1 className="text-lg font-bold tracking-tight text-foreground">Mind</h1>
-				</div>
-			</header>
-
-			{/* Main Content Area */}
-			<main className="flex-1 flex flex-col items-center justify-center px-6">
-				<div className="relative w-full max-w-2xl text-center space-y-8">
-					{/* Subtle background decoration */}
-					<div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/5 blur-3xl rounded-full -z-10" />
-
-					{/* Hero Icon */}
-					<div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-muted border overflow-hidden shadow-sm transition-transform hover:scale-105">
-						<Image src="/logo.png" alt="Mind Logo" width={80} height={80} className="object-cover" />
-					</div>
-
-					{/* Text Content */}
-					<div className="space-y-4">
-						<h2 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-foreground">
-							What will we build today?
-						</h2>
-						<p className="text-xl text-muted-foreground max-w-lg mx-auto leading-relaxed">
-							Start a fresh conversation with your AI assistant or pick up where you left off from the sidebar.
-						</p>
-					</div>
-
-					{/* Action Area */}
-					<div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-						<Suspense fallback={<div>Loading...</div>}>
-							<ConversationButton />
-						</Suspense>
-					</div>
-
-					{/* Feature Grid (Optional minimalist cues) */}
-					<div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-12 border-t mt-12">
-						{[
-							{ icon: Zap, text: "Instant Answers" },
-							{ icon: MessageSquarePlus, text: "Natural Chat" },
-							{ icon: Shield, text: "Secure Storage" },
-						].map((feature, i) => (
-							<div
-								key={i}
-								className="flex items-center justify-center gap-2 text-muted-foreground/80 hover:text-foreground transition-colors">
-								<feature.icon className="h-4 w-4 text-primary" />
-								<span className="text-sm font-medium">{feature.text}</span>
-							</div>
-						))}
-					</div>
+		<div className="h-full overflow-y-auto bg-background">
+			<main className="mx-auto flex min-h-full w-full max-w-[820px] flex-col justify-center gap-8 px-6 py-12">
+				<h1 className="font-display text-[clamp(44px,7vw,88px)] font-bold leading-[0.95] tracking-[-0.045em]">
+					One prompt.
+					<br />
+					Any model.
+				</h1>
+				<p className="max-w-xl text-lg text-muted-foreground">
+					Free models work out of the box. Add your own OpenRouter key to unlock the paid ones and web search.
+				</p>
+				<div>
+					<Suspense fallback={<Skeleton className="h-12 w-40 rounded-full" />}>
+						<ConversationButton />
+					</Suspense>
 				</div>
 			</main>
 		</div>
@@ -66,5 +28,5 @@ export default async function HomePage() {
 async function ConversationButton() {
 	const conversations = await getConversations();
 
-	return <CreateConversationButton conversations={conversations} />;
+	return <CreateConversationButton conversations={conversations} className="h-12 rounded-full px-6 text-base" />;
 }

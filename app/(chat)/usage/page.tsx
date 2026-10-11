@@ -1,3 +1,6 @@
+import { Suspense } from "react";
+
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getSession } from "@/lib/data/auth";
 import { getUsageSummary } from "@/lib/data/usage";
@@ -17,7 +20,28 @@ function formatCost(cost: number) {
 	return cost === 0 ? "$0" : `$${cost.toFixed(cost < 0.01 ? 4 : 2)}`;
 }
 
-export default async function UsagePage() {
+export default function UsagePage() {
+	return (
+		<Suspense fallback={<UsageSkeleton />}>
+			<UsageContent />
+		</Suspense>
+	);
+}
+
+function UsageSkeleton() {
+	return (
+		<div role="status" aria-label="Loading usage" className="h-full overflow-y-auto bg-background">
+			<div className="mx-auto max-w-4xl space-y-6 px-6 py-8">
+				<Skeleton className="h-8 w-32 rounded-lg" />
+				<Skeleton className="h-56 w-full rounded-[20px]" />
+				<Skeleton className="h-28 w-full rounded-[20px]" />
+				<Skeleton className="h-64 w-full rounded-[20px]" />
+			</div>
+		</div>
+	);
+}
+
+async function UsageContent() {
 	const session = await getSession();
 	const usage = await getUsageSummary(session.user.id, DAY_COUNT);
 	const maxTokens = Math.max(...usage.days.map((day) => day.tokens), 1);
@@ -32,17 +56,17 @@ export default async function UsagePage() {
 		<div className="h-full overflow-y-auto bg-background">
 			<div className="mx-auto max-w-4xl space-y-6 px-6 py-8">
 				<div>
-					<h1 className="text-2xl font-semibold tracking-tight text-foreground">Usage</h1>
+					<h1 className="font-display text-[26px] font-semibold tracking-tight text-foreground">Usage</h1>
 					<p className="mt-1 text-sm text-muted-foreground">Days are counted in UTC.</p>
 				</div>
 
-				<section className="rounded-xl border bg-card p-5">
-					<div className="flex items-baseline justify-between gap-4">
-						<h2 className="text-sm font-medium text-foreground">Free tokens used today</h2>
-						<p className="text-sm text-muted-foreground">
-							<span className="font-medium text-foreground">{usage.tokensToday.toLocaleString()}</span> of{" "}
-							{DAILY_TOKEN_LIMIT.toLocaleString()}
+				<section className="rounded-[20px] border bg-card p-6">
+					<p className="font-mono text-xs text-muted-foreground">free tokens used today</p>
+					<div className="mt-3 flex flex-wrap items-baseline gap-3">
+						<p className="font-display text-[clamp(56px,10vw,112px)] font-bold leading-[0.9] tracking-[-0.05em] tabular-nums">
+							{usage.tokensToday.toLocaleString()}
 						</p>
+						<p className="text-lg text-muted-foreground">of {DAILY_TOKEN_LIMIT.toLocaleString()}</p>
 					</div>
 					<div
 						role="progressbar"
@@ -50,7 +74,7 @@ export default async function UsagePage() {
 						aria-valuemin={0}
 						aria-valuemax={100}
 						aria-valuenow={quotaPercent}
-						className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+						className="mt-5 h-2 overflow-hidden rounded-full bg-border">
 						<div className="h-full rounded-full bg-chart-1" style={{ width: `${quotaPercent}%` }} />
 					</div>
 					<p className="mt-3 text-xs text-muted-foreground">
@@ -61,15 +85,15 @@ export default async function UsagePage() {
 
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 					{stats.map((stat) => (
-						<div key={stat.label} className="rounded-xl border bg-card p-5">
+						<div key={stat.label} className="rounded-[20px] border bg-card p-6">
 							<p className="text-xs text-muted-foreground">{stat.label}</p>
-							<p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{stat.value}</p>
+							<p className="mt-2 font-display text-4xl font-semibold tracking-tight tabular-nums text-foreground">{stat.value}</p>
 						</div>
 					))}
 				</div>
 
-				<section className="rounded-xl border bg-card p-5">
-					<h2 className="text-sm font-medium text-foreground">Tokens per day</h2>
+				<section className="rounded-[20px] border bg-card p-6">
+					<h2 className="font-display text-[22px] font-semibold tracking-tight text-foreground">Tokens per day</h2>
 					<p className="mt-1 text-xs text-muted-foreground">Peak day: {maxTokens.toLocaleString()} tokens</p>
 					<div className="mt-4 flex h-40 items-end gap-0.5 border-b border-border">
 						{usage.days.map((day) => (
@@ -100,8 +124,8 @@ export default async function UsagePage() {
 					</div>
 				</section>
 
-				<section className="rounded-xl border bg-card p-5">
-					<h2 className="text-sm font-medium text-foreground">By model</h2>
+				<section className="rounded-[20px] border bg-card p-6">
+					<h2 className="font-display text-[22px] font-semibold tracking-tight text-foreground">By model</h2>
 					{usage.models.length === 0 ? (
 						<p className="mt-3 text-sm text-muted-foreground">No usage yet.</p>
 					) : (
@@ -117,7 +141,7 @@ export default async function UsagePage() {
 							<tbody>
 								{usage.models.map((row) => (
 									<tr key={row.model} className="border-b border-border/50 last:border-0">
-										<td className="w-full max-w-0 truncate py-2 pr-4 text-foreground">{row.model}</td>
+										<td className="w-full max-w-0 truncate py-2 pr-4 font-mono text-[13px] text-foreground">{row.model}</td>
 										<td className="py-2 pl-4 text-right tabular-nums text-muted-foreground">
 											{row.requests.toLocaleString()}
 										</td>

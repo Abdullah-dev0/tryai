@@ -35,7 +35,7 @@ const CreateConversationButton = ({
 	};
 
 	return (
-		<Button onClick={handleNewChat} variant={"outline"} className={cn(className )} disabled={isPending}>
+		<Button onClick={handleNewChat} className={cn("gap-2 font-semibold", className)} disabled={isPending}>
 			{isPending ? (
 				<Spinner className="h-4 w-4" />
 			) : (

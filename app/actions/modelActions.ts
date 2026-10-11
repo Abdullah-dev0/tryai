@@ -13,9 +13,7 @@ export interface ModelsActionResult {
 export async function getModels(includePaid = false): Promise<ModelsActionResult> {
 	try {
 		const list = await getOpenRouterModels();
-		const visible = includePaid
-			? list.filter((m) => m.architecture?.output_modalities?.includes("text") ?? true)
-			: list.filter(isFreeModel);
+		const visible = includePaid ? list : list.filter(isFreeModel);
 
 		const options = visible.map(openRouterModelToOption);
 		const models = visible.map((m) => ({

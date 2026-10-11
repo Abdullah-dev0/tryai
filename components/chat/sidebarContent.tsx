@@ -1,10 +1,7 @@
 "use client";
 
 import {
-	BarChart3,
-	Columns2,
 	Loader2,
-	MessageSquare,
 	MoreHorizontal,
 	Pencil,
 	Pin,
@@ -139,22 +136,7 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 
 			{/* New Chat Button */}
 			<div className="px-3 pb-2">
-				<CreateConversationButton className="w-full" conversations={conversationsData} />
-			</div>
-
-			<div className="flex gap-1 px-3 pb-2">
-				<Button asChild variant="ghost" size="sm" className="h-8 flex-1 gap-1.5 text-xs text-muted-foreground">
-					<Link href="/compare">
-						<Columns2 className="h-3.5 w-3.5" />
-						Compare
-					</Link>
-				</Button>
-				<Button asChild variant="ghost" size="sm" className="h-8 flex-1 gap-1.5 text-xs text-muted-foreground">
-					<Link href="/usage">
-						<BarChart3 className="h-3.5 w-3.5" />
-						Usage
-					</Link>
-				</Button>
+				<CreateConversationButton className="h-11 w-full rounded-xl" conversations={conversationsData} />
 			</div>
 
 			{/* Search */}
@@ -163,10 +145,11 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 					<Input
 						type="text"
-						placeholder="Search your threads..."
+						placeholder="Search chats"
+						aria-label="Search chats"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-9 h-9 bg-background/50 border-border/50 rounded-lg text-sm placeholder:text-muted-foreground/60"
+						className="h-11 rounded-xl border-border bg-card pl-9 text-sm placeholder:text-muted-foreground"
 					/>
 				</div>
 			</div>
@@ -181,7 +164,7 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 					<div className="space-y-4 pb-4">
 						{groupedConversations.map((group) => (
 							<div key={group.label}>
-								<p className="px-3 py-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
+								<p className="px-3 py-2 text-xs font-medium text-muted-foreground">
 									{group.label}
 								</p>
 								<div className="space-y-0.5">
@@ -217,24 +200,20 @@ export function SidebarContent({ conversations }: SidebarContentProps) {
 											<div
 												key={conversation.id}
 												className={cn(
-													"group flex items-center rounded-lg pr-1 text-sm transition-colors",
+													"group flex min-h-11 items-center rounded-[10px] pr-1 text-sm transition-colors",
 													isActive
-														? "bg-accent text-accent-foreground"
-														: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+														? "bg-secondary font-semibold text-foreground"
+														: "text-foreground/85 hover:bg-secondary/60 hover:text-foreground",
 												)}>
 												<Link
 													href={`/chat/${conversation.id}`}
 													prefetch={true}
 													className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5">
-													{conversation.pinned ? (
-														<Pin className="h-4 w-4 shrink-0 opacity-60" />
-													) : (
-														<MessageSquare className="h-4 w-4 shrink-0 opacity-60" />
-													)}
+													{conversation.pinned && <Pin className="h-3.5 w-3.5 shrink-0 text-primary" />}
 													<span className="min-w-0 flex-1">
 														<span className="block truncate">{conversationTitle(conversation)}</span>
 														{snippet && (
-															<span className="block truncate text-xs text-muted-foreground/70">{snippet}</span>
+															<span className="block truncate text-xs font-normal text-muted-foreground">{snippet}</span>
 														)}
 													</span>
 												</Link>

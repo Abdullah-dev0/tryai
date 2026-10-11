@@ -86,14 +86,8 @@ export function ModelSelector({ value, onValueChange, className, commandTarget =
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<Button
-					variant="ghost"
-					size="sm"
-					className={cn(
-						"h-9 gap-2 rounded-lg px-3 text-sm font-medium",
-						className,
-					)}
-				>
-					{selectedOption && <BrandIcon brand={selectedOption.brand} />}
+					variant="outline"
+					className={cn("h-11 max-w-56 gap-2 rounded-full border-input bg-secondary px-4 font-mono text-xs", className)}>
 					<span className="truncate">
 						{loading ? "Loading…" : selectedOption?.label || "Select model"}
 					</span>

@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({
-	variable: "--font-inter",
+const geist = Geist({
+	variable: "--font-geist-sans",
+	subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+	variable: "--font-geist-mono",
+	subsets: ["latin"],
+});
+
+const bricolage = Bricolage_Grotesque({
+	variable: "--font-bricolage",
 	subsets: ["latin"],
 });
 
@@ -21,7 +31,8 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" className="dark">
-			<body className={`${inter.variable} font-sans antialiased h-screen overflow-hidden`}>
+			<body
+				className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} font-sans antialiased h-screen overflow-hidden`}>
 				<Toaster />
 				{children}
 			</body>

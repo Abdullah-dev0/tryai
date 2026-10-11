@@ -17,6 +17,43 @@ export function stripMarkdown(text: string): string {
 		.trim();
 }
 
+export function titleFromText(text: string, maxLength = 60): string {
+	const chars = Array.from(stripMarkdown(text));
+	if (chars.length === 0) return "New chat";
+	return chars.length > maxLength ? chars.slice(0, maxLength).join("").trimEnd() + "…" : chars.join("");
+}
+
+export function shortModelName(id: string): string {
+	return (id.split("/").pop() ?? id).replace(/:free$/, "");
+}
+
+interface MarkdownExportMessage {
+	role: string;
+	parts: { type: string; text?: string; url?: string; title?: string }[];
+}
+
+export function messagesToMarkdown(title: string, messages: MarkdownExportMessage[]): string {
+	const sections = messages.map((message) => {
+		const text = message.parts
+			.filter((part) => part.type === "text")
+			.map((part) => part.text ?? "")
+			.join("");
+		const images = message.parts.filter((part) => part.type === "file").length;
+		const sources = message.parts
+			.filter((part) => part.type === "source-url" && part.url)
+			.map((part) => `- [${part.title ?? part.url}](${part.url})`);
+		return [
+			`## ${message.role === "user" ? "You" : "Assistant"}`,
+			text,
+			images > 0 ? `_${images} image${images > 1 ? "s" : ""} attached_` : "",
+			sources.length > 0 ? `**Sources**\n${sources.join("\n")}` : "",
+		]
+			.filter(Boolean)
+			.join("\n\n");
+	});
+	return [`# ${title}`, ...sections].join("\n\n") + "\n";
+}
+
 // Generic type for items with date fields
 interface DateGroupable {
 	updatedAt: Date;
@@ -54,9 +91,7 @@ export function groupByDate<T extends DateGroupable>(items: T[]) {
 
 // Model selector helpers (OpenRouter model display)
 export function hasVision(architecture: OpenRouterModelArchitecture | undefined): boolean {
-	if (!architecture?.input_modalities?.length) return false;
-	const mod = architecture.input_modalities.join(" ").toLowerCase();
-	return mod.includes("image") || mod.includes("vision") || mod.includes("video");
+	return architecture?.input_modalities?.some((modality) => modality.toLowerCase() === "image") ?? false;
 }
 
 export function hasToolCalling(supported: string[] | null): boolean {
@@ -98,8 +133,7 @@ export function openRouterModelToOption(m: OpenRouterModel): ModelOption {
 
 /** Free models have "0" for both prompt and completion pricing */
 export function isFreeModel(model: OpenRouterModel) {
-	const p = model?.pricing;
-	return (p != null && String(p.prompt) === "0" && String(p.completion) === "0") || model.id.includes(":free");
+	return model.id.includes(":free");
 }
 
 /** Format context length for display (e.g. 131072 -> "131K ctx") */

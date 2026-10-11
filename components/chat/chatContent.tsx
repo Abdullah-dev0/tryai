@@ -13,5 +13,13 @@ export async function ChatContent({ id }: ChatContentProps) {
 		notFound();
 	}
 
-	return <ChatInterface id={id} initialMessages={conversation.messages} totalTokens={conversation.totalTokens} />;
+	return (
+		<ChatInterface
+			id={id}
+			initialMessages={conversation.messages}
+			totalTokens={conversation.totalTokens}
+			title={conversation.title}
+			isPublic={conversation.isPublic}
+		/>
+	);
 }

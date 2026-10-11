@@ -1,33 +1,24 @@
 "use server";
 
 import type { ModelOption } from "@/lib/constants";
+import { getOpenRouterModels } from "@/lib/data/models";
 import { isFreeModel, openRouterModelToOption } from "@/lib/utils";
-import type { OpenRouterModel, OpenRouterModelsResponse, OpenRouterModelSummary } from "@/lib/types/openrouter";
-
-const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
+import type { OpenRouterModelSummary } from "@/lib/types/openrouter";
 
 export interface ModelsActionResult {
 	options: ModelOption[];
 	models: OpenRouterModelSummary[];
 }
 
-export async function getModels(): Promise<ModelsActionResult> {
+export async function getModels(includePaid = false): Promise<ModelsActionResult> {
 	try {
-		const res = await fetch(OPENROUTER_MODELS_URL, {
-			next: { revalidate: 86400 },
-		});
+		const list = await getOpenRouterModels();
+		const visible = includePaid
+			? list.filter((m) => m.architecture?.output_modalities?.includes("text") ?? true)
+			: list.filter(isFreeModel);
 
-		if (!res.ok) {
-			console.warn("[openrouter] Models API error:", res.status);
-			return { options: [], models: [] };
-		}
-
-		const json: OpenRouterModelsResponse = await res.json();
-		const list: OpenRouterModel[] = Array.isArray(json?.data) ? json.data : [];
-		const freeModels = list.filter(isFreeModel);
-
-		const options = freeModels.map(openRouterModelToOption);
-		const models = freeModels.map((m) => ({
+		const options = visible.map(openRouterModelToOption);
+		const models = visible.map((m) => ({
 			id: m.id,
 			name: m.name,
 			description: m.description,

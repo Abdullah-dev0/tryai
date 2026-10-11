@@ -74,8 +74,8 @@ export function ApiKeyDialog({ isLoading }: { isLoading: boolean }) {
 						OpenRouter API Key
 					</DialogTitle>
 					<DialogDescription>
-						Bring your own API key to bypass rate limits. Your key is stored locally in your browser and never sent to
-						our servers.
+						Bring your own API key to lift the free limits and unlock paid models and web search. Your key is stored
+						locally in your browser and sent only with your chat requests. We never save it.
 					</DialogDescription>
 				</DialogHeader>
 

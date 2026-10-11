@@ -8,6 +8,13 @@
       "when": 1766718949840,
       "tag": "0000_naive_omega_flight",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791717183279,
+      "tag": "0001_famous_jubilee",
+      "breakpoints": true
     }
   ]
 }

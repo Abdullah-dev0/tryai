@@ -91,7 +91,7 @@ export const DEFAULT_MODEL: ModelOption[] = [
 	{
 		value: "openrouter/auto",
 		label: "Auto",
-		tagline: "Auto-select the best model for your prompt",
+		tagline: "Picks a model for each prompt. Free models only unless you add your own key",
 		context: "0",
 		inputs: "Text",
 		brand: "meta",

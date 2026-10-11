@@ -23,16 +23,17 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getModels } from "@/app/actions/modelActions";
 import {
 	BRAND_COLORS,
 	BRAND_LABELS,
 	DEFAULT_MODEL,
 	ModelBrand,
-	type ModelOption,
 } from "@/lib/constants";
 import { hasVision } from "@/lib/utils";
-import type { OpenRouterModelSummary } from "@/lib/types/openrouter";
+import { useApiKey } from "@/contexts/apiKeyContext";
+import { useModels } from "@/hooks/useModels";
+
+export const OPEN_MODEL_SELECTOR_EVENT = "tryai:open-model-selector";
 
 function BrandIcon({ brand }: { brand: ModelBrand }) {
 	return (
@@ -49,24 +50,21 @@ interface ModelSelectorProps {
 	value: string;
 	onValueChange: (value: string) => void;
 	className?: string;
+	commandTarget?: boolean;
 }
 
-export function ModelSelector({ value, onValueChange, className }: ModelSelectorProps) {
+export function ModelSelector({ value, onValueChange, className, commandTarget = false }: ModelSelectorProps) {
+	const { hasApiKey } = useApiKey();
+	const { options, models: fullModels, loading } = useModels(hasApiKey);
 	const [open, setOpen] = React.useState(false);
-	const [options, setOptions] = React.useState<ModelOption[]>(DEFAULT_MODEL);
-	const [fullModels, setFullModels] = React.useState<OpenRouterModelSummary[]>([]);
-	const [loading, setLoading] = React.useState(true);
 	const [search, setSearch] = React.useState("");
 
 	React.useEffect(() => {
-		getModels()
-			.then((data) => {
-				if (data.options?.length) setOptions(data.options);
-				if (Array.isArray(data.models)) setFullModels(data.models);
-			})
-			.catch(() => setOptions(DEFAULT_MODEL))
-			.finally(() => setLoading(false));
-	}, []);
+		if (!commandTarget) return;
+		const openSelector = () => setOpen(true);
+		window.addEventListener(OPEN_MODEL_SELECTOR_EVENT, openSelector);
+		return () => window.removeEventListener(OPEN_MODEL_SELECTOR_EVENT, openSelector);
+	}, [commandTarget]);
 
 	const selectedOption = options.find((m) => m.value === value) ?? DEFAULT_MODEL[0];
 

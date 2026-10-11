@@ -1,10 +1,10 @@
 "use server";
 
 import { getSession } from "@/lib/data/auth";
-import { getConversationForUser, getUserConversations } from "@/lib/data/conversation";
+import { getConversationForUser, getUserConversations, searchUserMessages } from "@/lib/data/conversation";
 import { loadChat } from "@/lib/data/chat";
 import { conversations, db } from "@/lib/db";
-import { Conversation } from "@/lib/types";
+import { Conversation, ConversationSearchResult } from "@/lib/types";
 import { generateId } from "ai";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -34,6 +34,8 @@ export const getConversation = async (id: string) => {
 		const messages = await loadChat(id);
 		return {
 			messages,
+			title: conv.title,
+			isPublic: conv.isPublic,
 			totalTokens: conv.totalTokens ?? 0,
 		};
 	} catch (error) {
@@ -86,4 +88,48 @@ export async function deleteConversation(id: string) {
 		throw new Error("Failed to delete conversation");
 	}
 	revalidatePath("/");
+}
+
+async function updateConversation(id: string, values: Partial<typeof conversations.$inferInsert>) {
+	const session = await getSession();
+	if (!session?.user) {
+		throw new Error("Unauthorized");
+	}
+	try {
+		await db
+			.update(conversations)
+			.set(values)
+			.where(and(eq(conversations.id, id), eq(conversations.userId, session.user.id)));
+	} catch (error) {
+		console.error("Failed to update conversation:", error);
+		throw new Error("Failed to update conversation");
+	}
+	revalidatePath("/");
+}
+
+export async function renameConversation(id: string, title: string) {
+	const trimmed = title.trim().slice(0, 100);
+	if (!trimmed) {
+		throw new Error("Title cannot be empty");
+	}
+	await updateConversation(id, { title: trimmed });
+}
+
+export async function setConversationPinned(id: string, pinned: boolean) {
+	await updateConversation(id, { pinned });
+}
+
+export async function setConversationPublic(id: string, isPublic: boolean) {
+	await updateConversation(id, { isPublic });
+}
+
+export async function searchConversations(query: string): Promise<ConversationSearchResult[]> {
+	const session = await getSession();
+	if (!session?.user) return [];
+	try {
+		return await searchUserMessages(session.user.id, query.slice(0, 100));
+	} catch (error) {
+		console.error("Failed to search conversations:", error);
+		return [];
+	}
 }

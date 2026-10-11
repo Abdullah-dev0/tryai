@@ -1,6 +1,6 @@
 import { db, messages, conversations } from "@/lib/db";
 import { ChatMessage } from "@/lib/types";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 // Helper to load chat messages from database (following docs pattern)
 export async function loadChat(id: string): Promise<ChatMessage[]> {
@@ -10,52 +10,66 @@ export async function loadChat(id: string): Promise<ChatMessage[]> {
 		id: row.id,
 		role: row.role as "user" | "assistant",
 		parts: JSON.parse(row.parts),
+		...(row.role === "assistant" && (row.model || row.tokens)
+			? { metadata: { model: row.model ?? undefined, tokens: row.tokens ?? 0 } }
+			: {}),
 	}));
 }
 
-// Helper to save all chat messages to database (following docs pattern)
-export async function saveChat({ chatId, messages: chatMessages }: { chatId: string; messages: ChatMessage[] }) {
-	// Only save the last 2 messages (user message + AI response)
-	// Previous messages are already persisted in the database
-	const userMessage = chatMessages.at(-2); // Second to last = user message
-	const aiMessage = chatMessages.at(-1); // Last = AI response
+export async function saveUserMessage({ chatId, message }: { chatId: string; message: ChatMessage }) {
+	await db
+		.insert(messages)
+		.values({
+			id: message.id,
+			role: "user",
+			parts: JSON.stringify(message.parts),
+			createdAt: Date.now(),
+			conversationId: chatId,
+		})
+		.onConflictDoNothing();
+}
 
-	const messagesToSave = [userMessage, aiMessage].filter(Boolean) as ChatMessage[];
+export async function deleteMessages(chatId: string, ids: string[]) {
+	if (ids.length === 0) return;
+	await db.delete(messages).where(and(eq(messages.conversationId, chatId), inArray(messages.id, ids)));
+}
 
-	const baseTime = Date.now();
-	for (const msg of messagesToSave) {
-		// Ensure deterministic order by adding index to baseTime
-		// This guarantees that later messages always have a later timestamp
-		// regardless of how fast the code executes
-		const orderOffset = messagesToSave.indexOf(msg);
-		const timestamp = baseTime + orderOffset;
+export async function saveAssistantMessage({
+	chatId,
+	message,
+	model,
+	tokens,
+}: {
+	chatId: string;
+	message: ChatMessage;
+	model: string;
+	tokens: number;
+}) {
+	await db
+		.insert(messages)
+		.values({
+			id: message.id,
+			role: "assistant",
+			parts: JSON.stringify(message.parts),
+			model,
+			tokens,
+			createdAt: Date.now(),
+			conversationId: chatId,
+		})
+		.onConflictDoNothing();
 
-		await db
-			.insert(messages)
-			.values({
-				id: msg.id,
-				role: msg.role as "user" | "assistant",
-				parts: JSON.stringify(msg.parts),
-				createdAt: timestamp,
-				conversationId: chatId,
-			})
-			.onConflictDoUpdate({
-				target: messages.id,
-				set: {
-					role: msg.role as "user" | "assistant",
-					parts: JSON.stringify(msg.parts),
-					createdAt: timestamp,
-				},
-			});
-	}
-
-	// Update conversation timestamp and add tokens
-	const tokensToAdd = chatMessages.at(-1)?.metadata?.tokens ?? 0;
 	await db
 		.update(conversations)
 		.set({
 			updatedAt: Date.now(),
-			totalTokens: sql`COALESCE(${conversations.totalTokens}, 0) + ${tokensToAdd}`,
+			totalTokens: sql`COALESCE(${conversations.totalTokens}, 0) + ${tokens}`,
 		})
 		.where(eq(conversations.id, chatId));
+}
+
+export async function setTitleIfEmpty(chatId: string, title: string) {
+	await db
+		.update(conversations)
+		.set({ title, updatedAt: Date.now() })
+		.where(and(eq(conversations.id, chatId), isNull(conversations.title)));
 }

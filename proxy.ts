@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
 // Public routes that don't require authentication
-const publicRoutes = ["/signin", "/api/auth"];
+const publicRoutes = ["/signin", "/api/auth", "/share"];
 
 // Routes that authenticated users should be redirected away from
 const authRoutes = ["/signin"];
